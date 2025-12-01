@@ -3,8 +3,6 @@
 import { useState } from "react"
 import { Modal, Form, Input, Button, Tabs, message } from "antd"
 import { UserOutlined, LockOutlined, MailOutlined } from "@ant-design/icons"
-
-// --- THAY ĐỔI 1: Import api thật và hàm lưu auth ---
 import { authApi } from "@/lib/api" 
 import { setAuth } from "@/lib/auth" 
 
@@ -13,19 +11,14 @@ export default function AuthModal({ open, mode, onCancel, onSuccess, onModeChang
   const [loginForm] = Form.useForm()
   const [registerForm] = Form.useForm()
 
-  // --- XỬ LÝ LOGIN ---
   const handleLogin = async (values) => {
     setLoading(true)
     try {
-      // Gọi API thật
       const data = await authApi.login(values.email, values.password)
-
-      // Kiểm tra cấu trúc data trả về từ BE (thường là accessToken hoặc token)
       const token = data.accessToken || data.token; 
       const user = data.user;
 
       if (token && user) {
-        // Lưu vào localStorage bằng hàm có sẵn trong lib/auth.js
         setAuth(token, user)
         
         message.success("Đăng nhập thành công!")
@@ -40,23 +33,15 @@ export default function AuthModal({ open, mode, onCancel, onSuccess, onModeChang
       setLoading(false)
     }
   }
-
-  // --- XỬ LÝ REGISTER ---
   const handleRegister = async (values) => {
     setLoading(true)
     try {
-      // Gọi API thật
       await authApi.register(values.email, values.password, values.fullName)
 
       message.success("Đăng ký thành công! Vui lòng đăng nhập.")
       registerForm.resetFields()
 
-      // --- THAY ĐỔI LOGIC ---
-      // Vì BE Register chỉ trả về { message: "Thành công", userId: ... } chứ KHÔNG trả về token.
-      // Nên ta không thể login ngay. Ta chuyển Tab sang Login để user tự nhập lại.
       onModeChange("login")
-      
-      // UX: Tự động điền email vừa đăng ký sang form login cho tiện
       loginForm.setFieldsValue({ email: values.email })
 
     } catch (error) {
@@ -66,9 +51,7 @@ export default function AuthModal({ open, mode, onCancel, onSuccess, onModeChang
     }
   }
 
-  // ... Phần giao diện (Tabs, Form) giữ nguyên như cũ ...
   const tabItems = [
-    // ... (Code giao diện giữ nguyên)
     {
       key: "login",
       label: "Đăng nhập",

@@ -30,10 +30,13 @@ export const metadata = {
 export default function RootLayout({ children }) {
   return (
     <html lang="en">
-      <body className={`font-sans antialiased`}>
+      <body
+        className={`font-sans antialiased`}
+        suppressHydrationWarning={true} 
+      >
         {children}
-        <Analytics />
+        {/* <Analytics /> */} 
       </body>
     </html>
-  )
+  );
 }
