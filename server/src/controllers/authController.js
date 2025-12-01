@@ -6,8 +6,6 @@ class AuthController {
     async handleRegister(req, res) {
         try {
             const { email, password, full_name } = req.body;
-
-            // Validate cơ bản
             if (!email || !password || !full_name) {
                 return res.status(400).json({ message: "Vui lòng nhập đủ thông tin!" });
             }
