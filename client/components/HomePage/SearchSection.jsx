@@ -25,7 +25,7 @@ export default function SearchSection({ onSearch, loading }) {
         <div className="flex gap-3">
           <Input
             size="large"
-            placeholder="Nhập tên điện thoại (VD: iPhone 13 Pro Max)"
+            placeholder="Please enter a phone model, e.g., iPhone 15 Pro Max"
             prefix={<SearchOutlined className="text-muted-foreground" />}
             value={keyword}
             onChange={(e) => setKeyword(e.target.value)}
@@ -46,7 +46,7 @@ export default function SearchSection({ onSearch, loading }) {
 
         {/* Quick search suggestions */}
         <div className="mt-4 flex flex-wrap gap-2 justify-center">
-          <span className="text-sm text-muted-foreground">Gợi ý:</span>
+          <span className="text-sm text-muted-foreground">Suggestions:</span>
           {["iPhone 15 Pro Max", "Samsung S24 Ultra", "Xiaomi 14"].map((suggestion) => (
             <button
               key={suggestion}

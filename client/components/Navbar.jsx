@@ -87,7 +87,7 @@ export default function Navbar() {
                     onClick={openLoginModal}
                     className="hidden sm:inline-flex"
                   >
-                    Đăng nhập
+                    Sign In
                   </Button>
                   <Button type="primary" icon={<UserAddOutlined />} onClick={openRegisterModal}>
                     <span className="hidden sm:inline">Register</span>

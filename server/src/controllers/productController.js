@@ -9,11 +9,7 @@ class ProductController {
             if (!keyword) {
                 return res.status(400).json({ message: "Vui lòng nhập tên sản phẩm cần tìm" });
             }
-
-            // Gọi xuống Service
             const result = await priceInquiryService.getBasicPriceInfo(keyword);
-
-            // Trả kết quả
             res.json(result);
 
         } catch (error) {

@@ -1,7 +1,6 @@
 const db = require('../config/db');
 
 class ListingRepository {
-    // Hàm tìm kiếm sản phẩm theo tên (đúng như method findActiveListings trong UML)
     async findActiveListingsByName(keyword) {
         const query = `
             SELECT 
@@ -18,8 +17,6 @@ class ListingRepository {
             ORDER BY l.price ASC
         `;
         const searchTerm = `%${keyword}%`;
-        
-        // Thực thi query
         const [rows] = await db.query(query, [searchTerm, searchTerm]);
         return rows;
     }
