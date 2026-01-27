@@ -2,9 +2,9 @@
 const express = require('express');
 const cors = require('cors');
 require('dotenv').config();
-const db = require('./src/config/db'); // Lưu ý đường dẫn config
-const productRoutes = require('./src/routes/productRoutes'); // Import Route
-const authRoutes = require('./src/routes/authRoutes'); // <--- Thêm dòng này
+const db = require('./src/config/db');
+const productRoutes = require('./src/routes/productRoutes');
+const authRoutes = require('./src/routes/authRoutes');
 const app = express();
 const port = process.env.PORT || 3000;
 
@@ -12,8 +12,7 @@ app.use(cors());
 app.use(express.json());
 
 // --- Cấu hình Routes ---
-// Tất cả API liên quan đến product sẽ bắt đầu bằng /api
-app.use('/api', productRoutes);
+app.use('/api/products', productRoutes); // Thêm /products vào đây
 app.use('/api/auth', authRoutes);
 
 // Test Route

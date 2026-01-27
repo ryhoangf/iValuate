@@ -1,4 +1,4 @@
-// lib/api.js
+// client/lib/api.js
 
 // Lấy URL từ biến môi trường hoặc dùng mặc định localhost
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api'; 
@@ -20,7 +20,6 @@ export const authApi = {
       }
 
       // Backend trả về: { message, accessToken (hoặc token), user }
-      // Bạn cần đảm bảo return đúng cấu trúc để AuthModal sử dụng
       return data; 
     } catch (error) {
       throw error;
@@ -33,8 +32,6 @@ export const authApi = {
       const res = await fetch(`${API_URL}/auth/register`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        // LƯU Ý QUAN TRỌNG:
-        // FE dùng biến "fullName", nhưng BE của bạn (AuthController) yêu cầu "full_name"
         body: JSON.stringify({ 
           email, 
           password, 
@@ -56,9 +53,60 @@ export const authApi = {
 };
 
 export const productApi = {
-  search: async (keyword) => {
+  search: async (keyword, filters = {}) => {
     try {
-      const res = await fetch(`${API_URL}/search?keyword=${encodeURIComponent(keyword)}`, {
+      // Build query parameters
+      const params = new URLSearchParams({ keyword });
+      
+      // Add filters if they exist and are not 'all'
+      if (filters.condition && filters.condition !== 'all') {
+        params.append('condition', filters.condition);
+      }
+      if (filters.color && filters.color !== 'all') {
+        params.append('color', filters.color);
+      }
+      if (filters.batteryStatus && filters.batteryStatus !== 'all') {
+        params.append('batteryStatus', filters.batteryStatus);
+      }
+      if (filters.screenCondition && filters.screenCondition !== 'all') {
+        params.append('screenCondition', filters.screenCondition);
+      }
+      if (filters.bodyCondition && filters.bodyCondition !== 'all') {
+        params.append('bodyCondition', filters.bodyCondition);
+      }
+      
+      // Boolean filters
+      if (filters.batteryReplaced === true) {
+        params.append('batteryReplaced', '1');
+      }
+      if (filters.hasBox === true) {
+        params.append('hasBox', '1');
+      }
+      if (filters.hasCharger === true) {
+        params.append('hasCharger', '1');
+      }
+      if (filters.isSimFree === true) {
+        params.append('isSimFree', '1');
+      }
+      if (filters.fullyFunctional === true) {
+        params.append('fullyFunctional', '1');
+      }
+      
+      // Only add minBattery if it's a valid number and not null/undefined
+      if (filters.minBattery != null && !isNaN(filters.minBattery)) {
+        params.append('minBattery', filters.minBattery);
+      }
+      if (filters.minPrice) {
+        params.append('minPrice', filters.minPrice);
+      }
+      if (filters.maxPrice) {
+        params.append('maxPrice', filters.maxPrice);
+      }
+      if (filters.platform && filters.platform !== 'all') {
+        params.append('platform', filters.platform);
+      }
+
+      const res = await fetch(`${API_URL}/products/search?${params.toString()}`, {
         method: 'GET',
         headers: { 'Content-Type': 'application/json' },
         cache: 'no-store'
@@ -66,6 +114,35 @@ export const productApi = {
 
       const data = await res.json();
       if (!res.ok) throw new Error(data.message || 'Lỗi khi tìm kiếm sản phẩm');
+      
+      return data;
+    } catch (error) {
+      console.error("API Error:", error);
+      throw error;
+    }
+  },
+
+  // New method: Get market price range
+  getMarketPrice: async (keyword, features = {}) => {
+    try {
+      const params = new URLSearchParams({ keyword });
+      
+      if (features.condition) {
+        params.append('condition', features.condition);
+      }
+      if (features.battery_health) {
+        params.append('battery_health', features.battery_health);
+      }
+
+      const res = await fetch(`${API_URL}/products/market-price?${params.toString()}`, {
+        method: 'GET',
+        headers: { 'Content-Type': 'application/json' },
+        cache: 'no-store'
+      });
+
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.message || 'Lỗi khi lấy thông tin giá');
+      
       return data;
     } catch (error) {
       console.error("API Error:", error);
