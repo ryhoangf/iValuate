@@ -177,9 +177,11 @@ export default function SimilarListingsTable({ listings, loading }) {
         dataSource={listings}
         loading={loading}
         rowKey="id"
+        className="[&_.ant-table-pagination]:px-4 [&_.ant-table-pagination]:py-3 [&_.ant-table-pagination]:mb-0 [&_.ant-pagination]:!justify-center [&_.ant-pagination]:flex-wrap"
         pagination={{
+          placement: ["bottomCenter"],
           pageSize: 10,
-          showSizeChanger: true,
+          showSizeChanger: { showSearch: false },
           showTotal: (total, range) => `${range[0]}-${range[1]} trong ${total} sản phẩm`,
         }}
         locale={{

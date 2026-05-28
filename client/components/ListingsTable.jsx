@@ -4,11 +4,14 @@ import { Table, Tag, Button, Empty, Tooltip, Progress } from "antd"
 import { LinkOutlined, ShopOutlined, ClockCircleOutlined, BatteryOutlined, FilterOutlined } from "@ant-design/icons"
 import dayjs from "dayjs"
 import "dayjs/locale/en"
+import { useState } from "react"
 
 // Configure time language to English
 dayjs.locale("en")
 
 export default function ListingsTable({ listings, loading }) {
+  const [pageSize, setPageSize] = useState(10)
+  const [currentPage, setCurrentPage] = useState(1)
   
   // 1. Format VND currency
   const formatPrice = (price) => {
@@ -172,34 +175,29 @@ export default function ListingsTable({ listings, loading }) {
   return (
     <section className="py-6">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        {/* Filter section */}
-        <div className="mb-6">          
-          {/* Dropdown filters - căn đều */}
-          <div className="flex flex-wrap gap-3 mb-4">
-            {/* Your filter dropdowns */}
-          </div>
-          
-          {/* Toggle filters - căn đều */}
-          <div className="flex flex-wrap gap-4 items-center">
-            {/* Your toggle switches */}
-          </div>
-          
-          {/* Battery slider - full width */}
-          <div className="mt-4">
-            {/* Your battery health slider */}
-          </div>
-        </div>
-
+        
         <div className="bg-white rounded-lg border border-gray-200 shadow-sm overflow-hidden">
           <Table
             columns={columns}
             dataSource={listings}
             loading={loading}
             rowKey="id"
+            className="[&_.ant-table-pagination]:px-4 [&_.ant-table-pagination]:py-3 [&_.ant-table-pagination]:mb-0 [&_.ant-pagination]:!justify-center [&_.ant-pagination]:flex-wrap"
             pagination={{
-              pageSize: 10,
-              showSizeChanger: true,
+              placement: ["bottomCenter"],
+              current: currentPage,
+              pageSize: pageSize,
+              showSizeChanger: { showSearch: false },
+              pageSizeOptions: ['10', '20', '50', '100'],
               showTotal: (total, range) => `${range[0]}-${range[1]} of ${total} items`,
+              onChange: (page, size) => {
+                setCurrentPage(page)
+                setPageSize(size)
+              },
+              onShowSizeChange: (current, size) => {
+                setCurrentPage(1) // Reset to page 1 when changing page size
+                setPageSize(size)
+              }
             }}
             locale={{
               emptyText: <Empty description="No matching data" image={Empty.PRESENTED_IMAGE_SIMPLE} />,

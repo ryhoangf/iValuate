@@ -5,6 +5,7 @@ class ListingRepository {
         let query = `
             SELECT 
                 l.listing_id as id,
+                p.product_id as product_id,
                 p.name as name, 
                 p.brand,
                 p.model_series,
@@ -75,6 +76,14 @@ class ListingRepository {
 
         if (filters.hasCharger === true) {
             query += ' AND l.has_charger = 1';
+        }
+
+        if (filters.hasCable === true) {
+            query += ' AND l.has_cable = 1';
+        }
+
+        if (filters.hasEarphones === true) {
+            query += ' AND l.has_earphones = 1';
         }
 
         if (filters.isSimFree === true) {
@@ -227,6 +236,36 @@ class ListingRepository {
         
         const [rows] = await db.query(query, [productId]);
         return rows[0];
+    }
+
+    /** Listings cùng product_id (dùng quét cơ hội giá / tình trạng) */
+    async findActiveListingsByProductId(productId, limit = 150) {
+        const query = `
+            SELECT 
+                l.listing_id as id,
+                p.name as name, 
+                p.brand,
+                p.model_series,
+                l.price, 
+                l.currency,
+                l.condition_rank as 'condition',
+                l.battery_health,
+                l.battery_percentage,
+                l.color,
+                l.source_url,
+                l.platform,
+                l.posted_at
+            FROM active_listings l
+            JOIN products p ON l.product_id = p.product_id
+            WHERE l.product_id = ?
+            ORDER BY l.price ASC
+            LIMIT ?
+        `;
+        const [rows] = await db.query(query, [productId, limit]);
+        return rows.map(row => ({
+            ...row,
+            battery_health: row.battery_health || row.battery_percentage || null
+        }));
     }
 
     // Tìm product_id từ tên sản phẩm - Improved version

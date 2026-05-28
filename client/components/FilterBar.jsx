@@ -4,7 +4,7 @@ import { Select, Space, Slider, Switch } from "antd"
 import { FilterOutlined } from "@ant-design/icons"
 import { useState } from "react"
 
-export default function FilterBar({ filters, onFilterChange, availableFilters }) {
+export default function FilterBar({ filters, onFilterChange, availableFilters, onResetFilters }) {
   // Local state for slider to prevent re-fetching on drag
   const [localBatteryValue, setLocalBatteryValue] = useState(null)
 
@@ -53,26 +53,17 @@ export default function FilterBar({ filters, onFilterChange, availableFilters })
     filters.batteryReplaced !== null ||
     filters.hasBox !== null ||
     filters.hasCharger !== null ||
+    filters.hasCable !== null ||
+    filters.hasEarphones !== null ||
     filters.isSimFree !== null ||
     filters.fullyFunctional !== null ||
     (availableFilters?.batteryRange && filters.minBattery > availableFilters.batteryRange.min);
 
   const resetAllFilters = () => {
-    onFilterChange('condition', 'all')
-    onFilterChange('color', 'all')
-    onFilterChange('platform', 'all')
-    onFilterChange('batteryStatus', 'all')
-    onFilterChange('screenCondition', 'all')
-    onFilterChange('bodyCondition', 'all')
-    onFilterChange('batteryReplaced', null)
-    onFilterChange('hasBox', null)
-    onFilterChange('hasCharger', null)
-    onFilterChange('isSimFree', null)
-    onFilterChange('fullyFunctional', null)
     if (availableFilters?.batteryRange) {
-      onFilterChange('minBattery', availableFilters.batteryRange.min)
       setLocalBatteryValue(availableFilters.batteryRange.min)
     }
+    onResetFilters()
   }
 
   return (
@@ -169,6 +160,22 @@ export default function FilterBar({ filters, onFilterChange, availableFilters })
               <Switch
                 checked={filters.hasCharger === true}
                 onChange={(checked) => onFilterChange("hasCharger", checked ? true : null)}
+              />
+            </div>
+
+            <div className="flex items-center gap-2">
+              <span className="text-sm">Has Cable:</span>
+              <Switch
+                checked={filters.hasCable === true}
+                onChange={(checked) => onFilterChange("hasCable", checked ? true : null)}
+              />
+            </div>
+
+            <div className="flex items-center gap-2">
+              <span className="text-sm">Has Earphones:</span>
+              <Switch
+                checked={filters.hasEarphones === true}
+                onChange={(checked) => onFilterChange("hasEarphones", checked ? true : null)}
               />
             </div>
 
