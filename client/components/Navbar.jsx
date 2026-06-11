@@ -2,9 +2,10 @@
 
 import { useMemo, useState, useSyncExternalStore } from "react"
 import Link from "next/link"
+import Image from "next/image"
 import { useRouter, usePathname } from "next/navigation"
 import { Dropdown, Button, App, Tag, Modal } from "antd"  // ← Thêm App, xóa message
-import { UserOutlined, LogoutOutlined, LoginOutlined, UserAddOutlined, MobileOutlined, BellOutlined, CrownOutlined } from "@ant-design/icons"
+import { UserOutlined, LogoutOutlined, LoginOutlined, UserAddOutlined, BellOutlined, CrownOutlined } from "@ant-design/icons"
 import { clearAuth, setAuth, normalizeUserFromApi } from "@/lib/auth"
 import { authApi } from "@/lib/api"
 import AuthModal from "./AuthModal"
@@ -179,9 +180,14 @@ export default function Navbar() {
               className="flex items-center gap-2 rounded-lg outline-none focus-visible:ring-2 focus-visible:ring-ring hover:opacity-90 transition-opacity"
               aria-label="Go to home"
             >
-              <div className="w-8 h-8 bg-primary rounded-lg flex items-center justify-center">
-                <MobileOutlined className="text-white text-lg" />
-              </div>
+              <Image
+                src="/ivaluate-logo.png"
+                alt=""
+                width={40}
+                height={40}
+                priority
+                className="h-10 w-10 object-contain"
+              />
               <span className="text-xl font-bold bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">
                 iValuate
               </span>
