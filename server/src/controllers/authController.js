@@ -7,7 +7,7 @@ class AuthController {
         try {
             const { email, password, full_name, plan_tier } = req.body;
             if (!email || !password || !full_name) {
-                return res.status(400).json({ message: "Vui lòng nhập đủ thông tin!" });
+                return res.status(400).json({ message: "Please fill in all required fields" });
             }
 
             const wantsPremium = plan_tier === 'premium' || plan_tier === 'PREMIUM';
@@ -19,8 +19,8 @@ class AuthController {
             );
             res.status(201).json({
                 message: wantsPremium
-                    ? 'Đăng ký Premium thành công! Đăng nhập để dùng đầy đủ tính năng.'
-                    : 'Đăng ký thành công! Đăng nhập để bắt đầu với gói Lite.',
+                    ? 'Premium registration successful! Sign in to access all features.'
+                    : 'Registration successful! Sign in to start with the Lite plan.',
                 userId: user.user_id,
                 plan_tier: wantsPremium ? 'premium' : 'lite',
             });
@@ -37,7 +37,7 @@ class AuthController {
             
             const result = await authService.login(email, password);
             res.json({
-                message: "Đăng nhập thành công!",
+                message: "Signed in successfully",
                 ...result
             });
 
@@ -49,16 +49,16 @@ class AuthController {
         try {
             const result = await authService.upgradePremiumTrial(req.userId);
             res.json({
-                message: 'Đã kích hoạt Premium (dùng thử). Đang cập nhật phiên đăng nhập…',
+                message: 'Premium trial activated. Refreshing your session…',
                 token: result.token,
                 user: result.user,
             });
         } catch (error) {
             const msg = error.message || '';
-            if (msg.includes('đã là Premium')) {
+            if (msg.includes('already Premium')) {
                 return res.status(400).json({ message: msg });
             }
-            res.status(500).json({ message: msg || 'Lỗi server' });
+            res.status(500).json({ message: msg || 'Server error' });
         }
     }
 
@@ -67,7 +67,7 @@ class AuthController {
             const user = await authService.getProfile(req.userId);
             res.json({ user });
         } catch (error) {
-            res.status(404).json({ message: error.message || 'Không tìm thấy' });
+            res.status(404).json({ message: error.message || 'Not found' });
         }
     }
 
@@ -81,21 +81,21 @@ class AuthController {
                 new_password,
             });
             res.json({
-                message: 'Đã cập nhật hồ sơ.',
+                message: 'Profile updated.',
                 user,
             });
         } catch (error) {
             const msg = error.message || '';
             if (
-                msg.includes('trống') ||
-                msg.includes('không hợp lệ') ||
-                msg.includes('đã được sử dụng') ||
-                msg.includes('hiện tại') ||
-                msg.includes('tối thiểu')
+                msg.includes('empty') ||
+                msg.includes('Invalid email') ||
+                msg.includes('already in use') ||
+                msg.includes('current password') ||
+                msg.includes('at least 6')
             ) {
                 return res.status(400).json({ message: msg });
             }
-            res.status(500).json({ message: msg || 'Lỗi server' });
+            res.status(500).json({ message: msg || 'Server error' });
         }
     }
 
@@ -103,16 +103,16 @@ class AuthController {
         try {
             const result = await authService.downgradePremiumToLite(req.userId);
             res.json({
-                message: 'Đã chuyển về gói Lite.',
+                message: 'Switched to Lite plan.',
                 token: result.token,
                 user: result.user,
             });
         } catch (error) {
             const msg = error.message || '';
-            if (msg.includes('không phải Premium')) {
+            if (msg.includes('not Premium')) {
                 return res.status(400).json({ message: msg });
             }
-            res.status(500).json({ message: msg || 'Lỗi server' });
+            res.status(500).json({ message: msg || 'Server error' });
         }
     }
 
@@ -122,7 +122,7 @@ class AuthController {
             const result = await authService.requestPasswordReset(email);
             res.json(result);
         } catch (error) {
-            res.status(500).json({ message: error.message || 'Lỗi server' });
+            res.status(500).json({ message: error.message || 'Server error' });
         }
     }
 
@@ -134,13 +134,15 @@ class AuthController {
         } catch (error) {
             const msg = error.message || '';
             if (
-                msg.includes('Thiếu') ||
-                msg.includes('tối thiểu') ||
-                msg.includes('không hợp lệ')
+                msg.includes('Missing') ||
+                msg.includes('at least 6') ||
+                msg.includes('Invalid') ||
+                msg.includes('expired') ||
+                msg.includes('no longer valid')
             ) {
                 return res.status(400).json({ message: msg });
             }
-            res.status(500).json({ message: msg || 'Lỗi server' });
+            res.status(500).json({ message: msg || 'Server error' });
         }
     }
 }

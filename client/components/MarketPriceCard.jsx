@@ -1,50 +1,55 @@
 "use client"
 
 import { Card, Statistic, Row, Col, Tag, Progress, Tooltip } from "antd"
-import { DollarOutlined, LineChartOutlined, CheckCircleOutlined, InfoCircleOutlined, RobotOutlined, DatabaseOutlined } from "@ant-design/icons"
+import { DollarOutlined, LineChartOutlined, RobotOutlined, DatabaseOutlined } from "@ant-design/icons"
 import dayjs from "dayjs"
+import { useCurrency } from "@/context/CurrencyContext"
+import { parseBaseSpecs } from "@/lib/parseBaseSpecs"
+import { formatStorageLabel, formatRamLabel, parseStorageToGb } from "@/lib/formatSpecs"
 
 export default function MarketPriceCard({ marketData }) {
+  const { formatFromVnd } = useCurrency()
+
   if (!marketData) return null
 
   const { marketPriceRange, product, featureAnalysis, dataSource, priceForecasts } = marketData
+  const specs = parseBaseSpecs(product?.baseSpecs)
+  const storageGb = parseStorageToGb(specs.storage ?? specs.storage_gb ?? specs.capacity)
+  const ramGb = specs.ram ?? specs.ram_gb
 
-  // Format currency
-  const formatPrice = (price) => {
-    return new Intl.NumberFormat("vi-VN", {
-      style: "currency",
-      currency: "VND",
-    }).format(price)
+  const formatPrice = (price) => formatFromVnd(price)
+
+  const getConfidenceClass = (confidence) => {
+    const pct = confidence > 1 ? confidence / 100 : confidence
+    if (pct >= 0.8) return "text-emerald-700 dark:text-emerald-400"
+    if (pct >= 0.6) return "text-amber-700 dark:text-amber-400"
+    return "text-red-700 dark:text-red-400"
   }
 
-  // Calculate confidence color
-  const getConfidenceColor = (confidence) => {
-    if (confidence >= 0.8) return "#52c41a" // Green
-    if (confidence >= 0.6) return "#faad14" // Orange
-    return "#ff4d4f" // Red
+  const getConfidenceBarColor = (confidence) => {
+    const pct = confidence > 1 ? confidence / 100 : confidence
+    if (pct >= 0.8) return "#059669"
+    if (pct >= 0.6) return "#d97706"
+    return "#dc2626"
   }
 
-  // Get impact color
-  const getImpactColor = (multiplier) => {
-    if (multiplier > 1.05) return "green"
-    if (multiplier > 1.0) return "cyan"
-    if (multiplier < 0.95) return "red"
-    if (multiplier < 1.0) return "orange"
-    return "default"
+  const formatConfidencePct = (confidence) => {
+    const n = Number(confidence)
+    if (Number.isNaN(n)) return "—"
+    return n > 1 ? n.toFixed(2) : (n * 100).toFixed(2)
   }
 
   // Get data source badge
   const getDataSourceBadge = (source) => {
     const badges = {
-      'price_history': { color: 'green', text: 'Lịch sử giá thực tế' },
-      'price_history + ml_forecast': { color: 'blue', text: 'Lịch sử + AI Prediction' },
-      'active_listings': { color: 'orange', text: 'Listings hiện tại' },
-      'ml_forecast_only': { color: 'purple', text: 'AI Prediction' }
+      'price_history': { color: 'green', text: 'Actual price history' },
+      'price_history + ml_forecast': { color: 'blue', text: 'History + AI prediction' },
+      'active_listings': { color: 'orange', text: 'Current listings' },
+      'ml_forecast_only': { color: 'purple', text: 'AI prediction' }
     }
-    return badges[source] || { color: 'default', text: 'Dữ liệu thực tế' }
+    return badges[source] || { color: 'default', text: 'Real data' }
   }
 
-  const confidencePercent = Math.round(marketPriceRange.confidence * 100)
   const sourceBadge = getDataSourceBadge(dataSource)
 
   return (
@@ -52,22 +57,24 @@ export default function MarketPriceCard({ marketData }) {
       title={
         <div className="flex items-center gap-2">
           <DollarOutlined className="text-primary" />
-          <span>Khoảng Giá Thị Trường Hợp Lý</span>
+          <span>Fair Market Price Range</span>
         </div>
       }
       variant="borderless"
-      className="shadow-sm"
+      className="shadow-sm border border-border bg-card"
     >
       {/* Product Info */}
       <div className="mb-4 pb-4 border-b">
-        <h3 className="text-lg font-semibold text-gray-800">{product.name}</h3>
+        <h3 className="text-lg font-semibold text-foreground">{product.name}</h3>
         <div className="flex gap-2 mt-2 flex-wrap items-center">
           <Tag color="blue">{product.brand}</Tag>
           {product.modelSeries && <Tag>{product.modelSeries}</Tag>}
+          {storageGb && <Tag color="geekblue">{formatStorageLabel(storageGb)}</Tag>}
+          {ramGb && <Tag color="purple">{formatRamLabel(ramGb)}</Tag>}
           
           {/* Data Source Badge */}
           {dataSource && (
-            <Tooltip title={`Nguồn dữ liệu: ${sourceBadge.text}`}>
+            <Tooltip title={`Data source: ${sourceBadge.text}`}>
               <Tag icon={<DatabaseOutlined />} color={sourceBadge.color}>
                 {sourceBadge.text}
               </Tag>
@@ -77,30 +84,51 @@ export default function MarketPriceCard({ marketData }) {
       </div>
 
       {/* Price Range */}
-      <Row gutter={[16, 16]}>
-        <Col xs={24} sm={8}>
+      <Row gutter={[16, 16]} justify="center">
+        <Col xs={24} sm={8} className="text-center">
           <Statistic
-            title="Giá Thấp Nhất"
+            title={<span className="font-bold text-emerald-600 dark:text-emerald-400">Lowest Price</span>}
             value={marketPriceRange.min}
-            formatter={(value) => formatPrice(value)}
-            styles={{ value: { color: "#52c41a", fontSize: "1.25rem" } }}
+            formatter={(value) => (
+              <span className="text-2xl font-bold tabular-nums text-emerald-600 dark:text-emerald-400">
+                {formatPrice(value)}
+              </span>
+            )}
+            styles={{
+              header: { textAlign: "center" },
+              content: { justifyContent: "center" },
+            }}
           />
         </Col>
-        <Col xs={24} sm={8}>
+        <Col xs={24} sm={8} className="text-center">
           <Statistic
-            title="Giá Trung Bình"
+            title={<span className="font-bold text-blue-600 dark:text-blue-400">Average Price</span>}
             value={marketPriceRange.average}
-            formatter={(value) => formatPrice(value)}
-            styles={{ value: { color: "#1890ff", fontSize: "1.25rem" } }}
-            prefix={<LineChartOutlined />}
+            formatter={(value) => (
+              <span className="text-2xl font-bold tabular-nums text-blue-600 dark:text-blue-400">
+                {formatPrice(value)}
+              </span>
+            )}
+            prefix={<LineChartOutlined className="text-blue-600 dark:text-blue-400" />}
+            styles={{
+              header: { textAlign: "center" },
+              content: { justifyContent: "center" },
+            }}
           />
         </Col>
-        <Col xs={24} sm={8}>
+        <Col xs={24} sm={8} className="text-center">
           <Statistic
-            title="Giá Cao Nhất"
+            title={<span className="font-bold text-red-600 dark:text-red-400">Highest Price</span>}
             value={marketPriceRange.max}
-            formatter={(value) => formatPrice(value)}
-            styles={{ value: { color: "#ff4d4f", fontSize: "1.25rem" } }}
+            formatter={(value) => (
+              <span className="text-2xl font-bold tabular-nums text-red-600 dark:text-red-400">
+                {formatPrice(value)}
+              </span>
+            )}
+            styles={{
+              header: { textAlign: "center" },
+              content: { justifyContent: "center" },
+            }}
           />
         </Col>
       </Row>
@@ -108,7 +136,7 @@ export default function MarketPriceCard({ marketData }) {
       {/* Confidence Score */}
       {/* <div className="mt-4 pt-4 border-t">
         <div className="flex items-center justify-between mb-2">
-          <span className="text-sm font-medium text-gray-600">Độ tin cậy:</span>
+          <span className="text-sm font-medium text-foreground/80">Độ tin cậy:</span>
           <span className="text-base font-semibold" style={{ color: getConfidenceColor(marketPriceRange.confidence) }}>
             {confidencePercent}%
           </span>
@@ -123,28 +151,49 @@ export default function MarketPriceCard({ marketData }) {
 
       {/* AI Forecast Section */}
       {priceForecasts?.latest && (
-        <div className="mt-4 pt-4 border-t">
-          <div className="flex items-center gap-2 mb-3">
-            <RobotOutlined className="text-purple-500" />
-            <span className="text-sm font-medium">AI Dự Đoán Giá:</span>
+        <div className="mt-4 pt-4 border-t border-border">
+          <div className="flex items-center gap-2 mb-1">
+            <RobotOutlined className="text-primary" aria-hidden />
+            <span className="text-sm font-medium text-foreground">AI price prediction</span>
           </div>
-          <div className="bg-purple-50 p-3 rounded-lg">
-            <div className="flex justify-between items-center">
+          <p className="text-xs text-muted-foreground mb-3">
+            Model price at ETL run date — not a 30-day forecast.
+          </p>
+          <div className="rounded-lg border border-border bg-muted/50 p-4 dark:bg-muted/30">
+            <div className="flex flex-wrap justify-between gap-4 items-end">
               <div>
-                <p className="text-xs text-gray-600 mb-1">Giá dự đoán</p>
-                <p className="text-lg font-bold text-purple-600">
+                <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground mb-1">
+                  Predicted price
+                </p>
+                <p className="text-xl font-bold tabular-nums text-foreground">
                   {formatPrice(priceForecasts.latest.price)}
                 </p>
               </div>
-              <div className="text-right">
-                <p className="text-xs text-gray-600 mb-1">Độ tin cậy</p>
-                <p className="text-lg font-bold text-purple-600">
-                  {priceForecasts.latest.confidence}%
+              <div className="text-right min-w-[7rem]">
+                <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground mb-1">
+                  Confidence
+                </p>
+                <p
+                  className={`text-xl font-bold tabular-nums ${getConfidenceClass(priceForecasts.latest.confidence)}`}
+                >
+                  {formatConfidencePct(priceForecasts.latest.confidence)}%
                 </p>
               </div>
             </div>
-            <p className="text-xs text-gray-500 mt-2">
-              Model: {priceForecasts.latest.modelVersion} • {dayjs(priceForecasts.latest.date).format('DD/MM/YYYY')}
+            <Progress
+              className="mt-3 [&_.ant-progress-bg]:!h-1.5"
+              percent={Math.min(100, Math.max(0, Number(priceForecasts.latest.confidence) || 0))}
+              strokeColor={getConfidenceBarColor(priceForecasts.latest.confidence)}
+              railColor="var(--border)"
+              size="small"
+              showInfo={false}
+            />
+            <p className="text-xs text-muted-foreground mt-3 leading-relaxed">
+              <span className="text-foreground/80">Model:</span>{" "}
+              {priceForecasts.latest.modelVersion}
+              <span className="mx-1.5 text-border">·</span>
+              <span className="text-foreground/80">ETL updated:</span>{" "}
+              {dayjs(priceForecasts.latest.date).format("DD/MM/YYYY")}
             </p>
           </div>
         </div>
@@ -166,7 +215,7 @@ export default function MarketPriceCard({ marketData }) {
           {/* Impact Breakdown */}
           {/* {featureAnalysis.impacts && featureAnalysis.impacts.length > 0 && (
             <div className="mt-3 space-y-2">
-              <span className="text-xs font-medium text-gray-600">Chi tiết impact:</span>
+              <span className="text-xs font-medium text-foreground/80">Chi tiết impact:</span>
               <div className="flex flex-wrap gap-2">
                 {featureAnalysis.impacts.map((impact, index) => {
                   const impactPercent = ((impact.multiplier - 1) * 100).toFixed(1)
@@ -192,7 +241,7 @@ export default function MarketPriceCard({ marketData }) {
       <div className="mt-4 p-3 bg-blue-50 rounded-lg">
         <div className="flex items-start gap-2">
           <CheckCircleOutlined className="text-blue-500 mt-1" />
-          <div className="text-sm text-gray-700">
+          <div className="text-sm text-foreground/85">
             <p className="font-medium mb-1">Khoảng giá này được tính toán dựa trên:</p>
             <ul className="list-disc list-inside space-y-1 text-xs">
               <li>{sourceBadge.text}</li>

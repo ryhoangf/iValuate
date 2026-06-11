@@ -45,7 +45,7 @@ export const authApi = {
       const data = await res.json();
 
       if (!res.ok) {
-        throw new Error(data.message || 'Đăng nhập thất bại');
+        throw new Error(data.message || 'Sign in failed');
       }
 
       // Backend trả về: { message, accessToken (hoặc token), user }
@@ -63,7 +63,7 @@ export const authApi = {
     });
     const data = await res.json();
     if (!res.ok) {
-      throw new Error(data.message || 'Không gửi được yêu cầu');
+      throw new Error(data.message || 'Could not send request');
     }
     return data;
   },
@@ -76,7 +76,7 @@ export const authApi = {
     });
     const data = await res.json();
     if (!res.ok) {
-      throw new Error(data.message || 'Đặt lại mật khẩu thất bại');
+      throw new Error(data.message || 'Password reset failed');
     }
     return data;
   },
@@ -99,7 +99,7 @@ export const authApi = {
       const data = await res.json();
 
       if (!res.ok) {
-        throw new Error(data.message || 'Đăng ký thất bại');
+        throw new Error(data.message || 'Registration failed');
       }
 
       return data; 
@@ -116,7 +116,7 @@ export const authApi = {
     });
     const data = await res.json();
     if (!res.ok) {
-      throw new Error(data.message || 'Không nâng cấp được');
+      throw new Error(data.message || 'Upgrade failed');
     }
     return data;
   },
@@ -129,7 +129,7 @@ export const authApi = {
     });
     const data = await res.json();
     if (!res.ok) {
-      throw new Error(data.message || 'Không hủy gói được');
+      throw new Error(data.message || 'Could not cancel plan');
     }
     return data;
   },
@@ -140,7 +140,7 @@ export const authApi = {
     });
     const data = await res.json();
     if (!res.ok) {
-      throw new Error(data.message || 'Không tải được hồ sơ');
+      throw new Error(data.message || 'Could not load profile');
     }
     return data;
   },
@@ -153,7 +153,7 @@ export const authApi = {
     });
     const data = await res.json();
     if (!res.ok) {
-      throw new Error(data.message || 'Cập nhật thất bại');
+      throw new Error(data.message || 'Update failed');
     }
     return data;
   },
@@ -218,6 +218,12 @@ export const productApi = {
       if (filters.platform && filters.platform !== 'all') {
         params.append('platform', filters.platform);
       }
+      if (filters.storage && filters.storage !== 'all') {
+        params.append('storage', filters.storage);
+      }
+      if (filters.ram && filters.ram !== 'all') {
+        params.append('ram', filters.ram);
+      }
 
       const res = await fetch(`${API_URL}/products/search?${params.toString()}`, {
         method: 'GET',
@@ -226,19 +232,19 @@ export const productApi = {
       });
 
       const data = await res.json();
-      if (!res.ok) throw new Error(data.message || 'Lỗi khi tìm kiếm sản phẩm');
+      if (!res.ok) throw httpError(res, data, 'Product search failed');
       
       return data;
     } catch (error) {
-      console.error("API Error:", error);
       throw error;
     }
   },
 
   // NEW: Get market price range with ALL features
-  getMarketPrice: async (keyword, features = {}) => {
+  getMarketPrice: async (keyword, features = {}, productId) => {
     try {
       const params = new URLSearchParams({ keyword });
+      if (productId) params.set('product_id', productId);
       
       // Basic features
       if (features.condition && features.condition !== 'all') {
@@ -288,6 +294,8 @@ export const productApi = {
       } else if (features.fullyFunctional === true) {
         params.append('fullyFunctional', '1');
       }
+      if (features.storage) params.append('storage', features.storage);
+      if (features.ram) params.append('ram', features.ram);
 
       const res = await fetch(`${API_URL}/products/market-price?${params.toString()}`, {
         method: 'GET',
@@ -296,11 +304,14 @@ export const productApi = {
       });
 
       const data = await res.json();
-      if (!res.ok) throw httpError(res, data, 'Lỗi khi lấy thông tin giá');
+      if (res.status === 404) return null;
+      if (!res.ok) throw httpError(res, data, 'Failed to load price data');
       
       return data;
     } catch (error) {
-      console.error("API Error:", error);
+      if (error?.status !== 404) {
+        console.error("API Error:", error);
+      }
       throw error;
     }
   },
@@ -325,13 +336,32 @@ export const productApi = {
       });
 
       const data = await res.json();
-      if (!res.ok) throw httpError(res, data, 'Lỗi khi lấy phân tích feature');
+      if (!res.ok) throw httpError(res, data, 'Failed to load feature analysis');
       
       return data;
     } catch (error) {
       console.error("API Error:", error);
       throw error;
     }
+  },
+
+  getPriceForecast30d: async ({ productId, keyword, horizonDays } = {}) => {
+    const params = new URLSearchParams();
+    if (productId) params.set('product_id', productId);
+    if (keyword) params.set('keyword', keyword);
+    if (horizonDays != null && horizonDays > 0) {
+      params.set('horizon_days', String(horizonDays));
+    }
+    const qs = params.toString();
+    const res = await fetch(
+      `${API_URL}/products/price-forecast-30d${qs ? `?${qs}` : ''}`,
+      { method: 'GET', headers: optionalBearerHeaders(), cache: 'no-store' }
+    );
+    const data = await res.json();
+    if (!res.ok) {
+      throw httpError(res, data, data.detail || data.message || 'Failed to load 30-day forecast');
+    }
+    return data;
   },
 
   getDepreciationCurve: async ({ productId, keyword }) => {
@@ -345,7 +375,7 @@ export const productApi = {
     );
     const data = await res.json();
     if (!res.ok) {
-      throw httpError(res, data, data.detail || data.message || 'Lỗi khi lấy đường cong trượt giá');
+      throw httpError(res, data, data.detail || data.message || 'Failed to load depreciation curve');
     }
     return data;
   },
@@ -376,8 +406,24 @@ export const productApi = {
             : typeof d === 'object' && d != null
               ? JSON.stringify(d)
               : data.message;
-      throw httpError(res, data, msg || 'Lỗi khi phân tích tác động yếu tố (ML)');
+      throw httpError(res, data, msg || 'Failed to load feature impact (ML)');
     }
+    return data;
+  },
+
+  /** Hãng + model có nhiều tin đăng nhất (menu trang chủ) */
+  getBrandCatalog: async (opts = {}) => {
+    const params = new URLSearchParams();
+    if (opts.maxBrands != null) params.set('maxBrands', String(opts.maxBrands));
+    if (opts.perBrand != null) params.set('perBrand', String(opts.perBrand));
+    const qs = params.toString();
+    const res = await fetch(`${API_URL}/products/brand-catalog${qs ? `?${qs}` : ''}`, {
+      method: 'GET',
+      headers: { 'Content-Type': 'application/json' },
+      cache: 'no-store',
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.message || 'Failed to load brand catalog');
     return data;
   },
 };
@@ -401,7 +447,7 @@ export const watchApi = {
     });
     const data = await res.json();
     if (!res.ok) {
-      throw new Error(data.message || 'Không tải được danh sách theo dõi');
+      throw new Error(data.message || 'Failed to load watches');
     }
     return data;
   },
@@ -414,7 +460,7 @@ export const watchApi = {
     });
     const data = await res.json();
     if (!res.ok) {
-      throw new Error(data.message || 'Không tạo được theo dõi');
+      throw new Error(data.message || 'Could not create watch');
     }
     return data;
   },
@@ -426,7 +472,7 @@ export const watchApi = {
     });
     const data = await res.json().catch(() => ({}));
     if (!res.ok) {
-      throw new Error(data.message || 'Không xóa được');
+      throw new Error(data.message || 'Could not delete watch');
     }
     return data;
   },
@@ -439,7 +485,7 @@ export const watchApi = {
     });
     const data = await res.json().catch(() => ({}));
     if (!res.ok) {
-      throw new Error(data.message || 'Lỗi khi ẩn tin');
+      throw new Error(data.message || 'Failed to hide listing');
     }
     return data;
   },

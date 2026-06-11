@@ -37,38 +37,61 @@ class PriceInquiryService {
         };
     }
 
-    async getMarketPriceRange(keyword, features = {}) {
+    async getMarketPriceRange(keyword, features = {}, productId = null, opts = {}) {
         try {
-            const product = await listingRepository.findProductIdByName(keyword);
-            if (!product) throw new Error('Product not found');
-            
-            const productId = product.product_id;
-            
-            // Get price prediction with features
-            const priceRangeData = await mlModelService.predictPriceInquiry(productId, features);
+            const includePremiumData = opts.includePremiumData === true;
+            let resolvedProductId = productId;
+
+            if (resolvedProductId) {
+                const row = await listingRepository.findProductById(resolvedProductId);
+                if (!row) throw new Error('Product not found');
+            } else {
+                const specFilters = {
+                    storage: features.storage,
+                    ram: features.ram,
+                };
+                const product = await listingRepository.resolveProductForKeyword(keyword, specFilters);
+                if (!product) throw new Error('Product not found');
+                resolvedProductId = product.product_id;
+            }
+
+            // Run price prediction + similar listings + product info in parallel
+            const [priceRangeData, productRow] = await Promise.all([
+                mlModelService.predictPriceInquiry(
+                    resolvedProductId,
+                    features,
+                    { useForecastSignal: includePremiumData }
+                ),
+                listingRepository.findProductById(resolvedProductId),
+            ]);
             if (!priceRangeData) throw new Error('Unable to calculate price range');
-            
-            // Get similar listings
-            const similarListings = await listingRepository.findSimilarListingsByPrice(
-                productId,
-                priceRangeData.priceRange,
-                20
-            );
-            
-            // Get price history for chart (REAL historical prices)
-            const priceHistory = await priceHistoryRepository.getLatestPriceData(productId, 30);
-            
-            // Get ML forecast data (PREDICTED prices) - NEW!
-            const mlForecast = await priceForecastRepository.getLatestForecast(productId).catch(() => null);
-            const forecastHistory = await priceForecastRepository.getForecastHistory(productId, 30).catch(() => []);
-            
+
+            // Fetch similar listings + premium data all in parallel
+            const [similarListings, priceHistory, mlForecast, forecastHistory] =
+                await Promise.all([
+                    listingRepository.findSimilarListingsByPrice(
+                        resolvedProductId,
+                        priceRangeData.priceRange,
+                        20
+                    ),
+                    includePremiumData
+                        ? priceHistoryRepository.getLatestPriceData(resolvedProductId, 30)
+                        : Promise.resolve([]),
+                    includePremiumData
+                        ? priceForecastRepository.getLatestForecast(resolvedProductId).catch(() => null)
+                        : Promise.resolve(null),
+                    includePremiumData
+                        ? priceForecastRepository.getForecastHistory(resolvedProductId, 30).catch(() => [])
+                        : Promise.resolve([]),
+                ]);
+
             return {
                 product: {
-                    id: product.product_id,
-                    name: product.name,
-                    brand: product.brand,
-                    modelSeries: product.model_series,
-                    baseSpecs: product.base_specs // Include JSON specs
+                    id: resolvedProductId,
+                    name: productRow.name,
+                    brand: productRow.brand,
+                    modelSeries: productRow.model_series,
+                    baseSpecs: productRow.base_specs // Include JSON specs
                 },
                 marketPriceRange: {
                     min: priceRangeData.priceRange.min,
@@ -78,15 +101,18 @@ class PriceInquiryService {
                     confidence: priceRangeData.confidence,
                     currency: 'VND'
                 },
-                featureAnalysis: {
-                    featuresUsed: priceRangeData.featuresUsed || [],
-                    impacts: priceRangeData.priceRange.impacts || [],
-                    totalFeatureCount: priceRangeData.featuresUsed?.length || 0
-                },
+                featureAnalysis: includePremiumData
+                    ? {
+                        featuresUsed: priceRangeData.featuresUsed || [],
+                        impacts: priceRangeData.priceRange.impacts || [],
+                        totalFeatureCount: priceRangeData.featuresUsed?.length || 0
+                    }
+                    : null,
                 similarListings: similarListings.map(listing => ({
                     id: listing.id,
                     name: listing.name,
                     price: listing.price,
+                    originalPrice: listing.originalPrice,
                     condition: listing.condition,
                     batteryHealth: listing.battery_health,
                     color: listing.color,
@@ -118,7 +144,11 @@ class PriceInquiryService {
 
     async getFeatureImpact(keyword, features = {}) {
         try {
-            const product = await listingRepository.findProductIdByName(keyword);
+            const specFilters = {
+                storage: features.storage,
+                ram: features.ram,
+            };
+            const product = await listingRepository.resolveProductForKeyword(keyword, specFilters);
             if (!product) throw new Error('Product not found');
             
             const impact = await mlModelService.getFeatureImpact(product.product_id, features);

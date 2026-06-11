@@ -43,6 +43,7 @@ class PriceHistoryRepository {
                 avg_price as averagePrice,
                 min_price as minPrice,
                 max_price as maxPrice,
+                original_price as originalAveragePrice,
                 listing_count as count
             FROM price_history
             WHERE product_id = ?

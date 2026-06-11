@@ -14,7 +14,7 @@ class AuthService {
         // 1. Kiểm tra email đã tồn tại chưa
         const existingUser = await userRepository.findUserByEmail(email);
         if (existingUser) {
-            throw new Error('Email này đã được sử dụng!');
+            throw new Error('This email is already in use');
         }
 
         // 2. Mã hóa mật khẩu (Hashing)
@@ -46,13 +46,13 @@ class AuthService {
         // 1. Tìm user
         const user = await userRepository.findUserByEmail(email);
         if (!user) {
-            throw new Error('Email hoặc mật khẩu không đúng');
+            throw new Error('Incorrect email or password');
         }
 
         // 2. So sánh mật khẩu (Hash vs Raw)
         const isMatch = await bcrypt.compare(password, user.password_hash);
         if (!isMatch) {
-            throw new Error('Email hoặc mật khẩu không đúng');
+            throw new Error('Incorrect email or password');
         }
 
         const subscriptionTier = await subscriptionRepository.getSubscriptionTierForUser(user.user_id);
@@ -80,13 +80,13 @@ class AuthService {
     async upgradePremiumTrial(userId) {
         const current = await subscriptionRepository.getSubscriptionTierForUser(userId);
         if (current === 'premium') {
-            throw new Error('Tài khoản đã là Premium.');
+            throw new Error('Account is already Premium.');
         }
         await subscriptionRepository.createSubscriptionForNewUser(userId, 'PREMIUM');
         const subscriptionTier = await subscriptionRepository.getSubscriptionTierForUser(userId);
         const user = await userRepository.findById(userId);
         if (!user) {
-            throw new Error('Không tìm thấy người dùng');
+            throw new Error('User not found');
         }
         const token = jwt.sign(
             { id: user.user_id, role: user.role, subscriptionTier },
@@ -109,13 +109,13 @@ class AuthService {
     async downgradePremiumToLite(userId) {
         const current = await subscriptionRepository.getSubscriptionTierForUser(userId);
         if (current !== 'premium') {
-            throw new Error('Tài khoản không phải Premium.');
+            throw new Error('Account is not Premium.');
         }
         await subscriptionRepository.cancelPremiumForUser(userId);
         const subscriptionTier = await subscriptionRepository.getSubscriptionTierForUser(userId);
         const user = await userRepository.findById(userId);
         if (!user) {
-            throw new Error('Không tìm thấy người dùng');
+            throw new Error('User not found');
         }
         const token = jwt.sign(
             { id: user.user_id, role: user.role, subscriptionTier },
@@ -137,7 +137,7 @@ class AuthService {
     async getProfile(userId) {
         const user = await userRepository.findById(userId);
         if (!user) {
-            throw new Error('Không tìm thấy người dùng');
+            throw new Error('User not found');
         }
         const subscriptionTier = await subscriptionRepository.getSubscriptionTierForUser(userId);
         return {
@@ -156,7 +156,7 @@ class AuthService {
     async updateProfile(userId, body) {
         const user = await userRepository.findById(userId);
         if (!user) {
-            throw new Error('Không tìm thấy người dùng');
+            throw new Error('User not found');
         }
 
         const updates = {};
@@ -165,7 +165,7 @@ class AuthService {
         if (fullNameIn !== undefined) {
             const fn = String(fullNameIn).trim();
             if (!fn) {
-                throw new Error('Tên hiển thị không được để trống');
+                throw new Error('Display name cannot be empty');
             }
             updates.full_name = fn.slice(0, 255);
         }
@@ -173,26 +173,26 @@ class AuthService {
         if (emailIn !== undefined) {
             const em = String(emailIn).trim().toLowerCase();
             if (!em || !em.includes('@')) {
-                throw new Error('Email không hợp lệ');
+                throw new Error('Invalid email');
             }
             const other = await userRepository.findUserByEmail(em);
             if (other && String(other.user_id) !== String(userId)) {
-                throw new Error('Email này đã được sử dụng');
+                throw new Error('This email is already in use');
             }
             updates.email = em.slice(0, 255);
         }
 
         if (new_password !== undefined && String(new_password).length > 0) {
             if (!current_password) {
-                throw new Error('Vui lòng nhập mật khẩu hiện tại');
+                throw new Error('Please enter your current password');
             }
             const ok = await bcrypt.compare(current_password, user.password_hash);
             if (!ok) {
-                throw new Error('Mật khẩu hiện tại không đúng');
+                throw new Error('Current password is incorrect');
             }
             const np = String(new_password);
             if (np.length < 6) {
-                throw new Error('Mật khẩu mới tối thiểu 6 ký tự');
+                throw new Error('New password must be at least 6 characters');
             }
             const salt = await bcrypt.genSalt(10);
             updates.password_hash = await bcrypt.hash(np, salt);
@@ -208,7 +208,7 @@ class AuthService {
     /** Đặt lại mật khẩu: JWT ký (stateless), không lưu token trong DB. `pv` bám theo hash mật khẩu hiện tại → link hết hiệu lực sau khi đổi mật khẩu. */
     async requestPasswordReset(email) {
         const generic =
-            'Nếu email đã đăng ký trong hệ thống, kiểm tra hướng dẫn đặt lại mật khẩu (hộp thư hoặc liên hệ quản trị).';
+            'If this email is registered, check your inbox for reset instructions (or contact admin).';
         const em = String(email || '')
             .trim()
             .toLowerCase();
@@ -231,12 +231,11 @@ class AuthService {
             ''
         );
         const resetUrl = `${base}/reset-password?token=${encodeURIComponent(token)}`;
-        console.info('[password-reset]', em, resetUrl);
 
         try {
             const mail = await mailService.sendPasswordResetEmail(em, resetUrl);
             if (mail.sent) {
-                console.info('[password-reset] Đã gửi email tới', em);
+                console.info('[password-reset] Đã gửi email đặt lại mật khẩu');
             }
         } catch (err) {
             console.error('[password-reset] Gửi email thất bại:', err?.message || err);
@@ -251,33 +250,33 @@ class AuthService {
 
     async resetPasswordWithToken(token, newPassword) {
         if (!token || !String(token).trim()) {
-            throw new Error('Thiếu mã đặt lại mật khẩu');
+            throw new Error('Missing reset token');
         }
         const np = String(newPassword);
         if (np.length < 6) {
-            throw new Error('Mật khẩu mới tối thiểu 6 ký tự');
+            throw new Error('New password must be at least 6 characters');
         }
         let payload;
         try {
             payload = jwt.verify(String(token).trim(), getJwtSecret());
         } catch {
-            throw new Error('Liên kết không hợp lệ hoặc đã hết hạn');
+            throw new Error('Invalid or expired reset link');
         }
         if (payload.purpose !== 'password_reset' || !payload.sub || !payload.pv) {
-            throw new Error('Liên kết không hợp lệ hoặc đã hết hạn');
+            throw new Error('Invalid or expired reset link');
         }
         const user = await userRepository.findById(payload.sub);
         if (!user) {
-            throw new Error('Liên kết không hợp lệ hoặc đã hết hạn');
+            throw new Error('Invalid or expired reset link');
         }
         const pvNow = crypto.createHash('sha256').update(user.password_hash).digest('hex').slice(0, 16);
         if (pvNow !== payload.pv) {
-            throw new Error('Liên kết không còn hiệu lực (mật khẩu đã được đổi)');
+            throw new Error('Reset link is no longer valid (password was already changed)');
         }
         const salt = await bcrypt.genSalt(10);
         const passwordHash = await bcrypt.hash(np, salt);
         await userRepository.updateUserFields(user.user_id, { password_hash: passwordHash });
-        return { message: 'Đã đặt lại mật khẩu. Bạn có thể đăng nhập.' };
+        return { message: 'Password reset. You can sign in now.' };
     }
 }
 

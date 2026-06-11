@@ -3,6 +3,7 @@
  * ENV: DEPRECIATION_API_URL — ví dụ http://127.0.0.1:8000
  */
 const listingRepository = require('../repositories/listingRepository');
+const { getRamGb } = require('../utils/parseProductSpecs');
 
 function parseBaseSpecs(baseSpecs) {
   if (baseSpecs == null) return {};
@@ -33,29 +34,28 @@ function buildDepreciationQueryFromProduct(product) {
       '128'
   );
 
-  const ram = String(
-    specs.ram ?? specs.ram_gb ?? process.env.DEPRECIATION_DEFAULT_RAM ?? '6'
-  );
+  const ramGb = getRamGb(specs);
+  const ram = ramGb != null ? String(ramGb).trim() : '';
 
   return {
     model_line: String(modelLine).trim(),
     storage: storage.trim(),
-    ram: ram.trim(),
+    ram,
   };
 }
 
-async function resolveProduct(productId, keyword) {
+async function resolveProduct(productId, keyword, specFilters = {}) {
   if (productId) {
     const p = await listingRepository.findProductById(productId);
-    if (!p) throw new Error('Không tìm thấy sản phẩm');
+    if (!p) throw new Error('Product not found');
     return p;
   }
   if (keyword) {
-    const p = await listingRepository.findProductIdByName(keyword);
-    if (!p) throw new Error('Không tìm thấy sản phẩm theo từ khóa');
-    return listingRepository.findProductById(p.product_id);
+    const p = await listingRepository.resolveProductForKeyword(keyword, specFilters);
+    if (!p) throw new Error('Product not found for keyword');
+    return p;
   }
-  throw new Error('Cần product_id hoặc keyword');
+  throw new Error('product_id or keyword is required');
 }
 
 async function fetchDepreciationFromPython(q, productId) {
@@ -66,14 +66,14 @@ async function fetchDepreciationFromPython(q, productId) {
 
   const yenEnv = process.env.DEPRECIATION_YEN_TO_VND;
   const yenToVnd =
-    yenEnv != null && yenEnv !== '' ? Number.parseFloat(yenEnv, 10) : undefined;
+    yenEnv != null && yenEnv !== '' ? Number.parseFloat(yenEnv) : 175;
 
   const params = new URLSearchParams();
   params.set('model_line', q.model_line);
   params.set('storage', q.storage);
-  params.set('ram', q.ram);
+  if (q.ram) params.set('ram', q.ram);
   if (productId) params.set('product_id', productId);
-  if (yenToVnd != null && !Number.isNaN(yenToVnd)) {
+  if (Number.isFinite(yenToVnd)) {
     params.set('yen_to_vnd', String(yenToVnd));
   }
 
@@ -84,7 +84,7 @@ async function fetchDepreciationFromPython(q, productId) {
   try {
     data = text ? JSON.parse(text) : {};
   } catch {
-    throw new Error(`Phản hồi không phải JSON từ dịch vụ giá: ${text.slice(0, 200)}`);
+    throw new Error(`Price service returned non-JSON response: ${text.slice(0, 200)}`);
   }
   if (!res.ok) {
     const detail = data.detail || data.message || text || res.statusText;
@@ -92,6 +92,9 @@ async function fetchDepreciationFromPython(q, productId) {
   }
   return data;
 }
+
+const DEPRECIATION_DISCLAIMER_EN =
+  'Simulation from the SmartPricePredictor model with fixed reference conditions; not actual daily market prices.';
 
 class DepreciationCurveService {
   async getCurve(opts = {}) {
@@ -102,7 +105,7 @@ class DepreciationCurveService {
 
     if (!q.model_line || q.model_line === 'Unknown') {
       throw new Error(
-        'Không suy ra được model_line từ DB — kiểm tra model_series / base_specs'
+        'Could not derive model_line from DB — check model_series / base_specs'
       );
     }
 
@@ -110,6 +113,7 @@ class DepreciationCurveService {
 
     return {
       ...pythonPayload,
+      disclaimer: DEPRECIATION_DISCLAIMER_EN,
       query: q,
       product: {
         id: pid,

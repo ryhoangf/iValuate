@@ -1,0 +1,21 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: ivaluate-config
+  namespace: ivaluate
+data:
+  NODE_ENV: production
+  PORT: "5000"
+  DB_HOST: "157.66.100.135"
+  DB_PORT: "3306"
+  DB_NAME: ivaluate
+  REDIS_URL: redis://ivaluate-redis:6379
+  DEPRECIATION_API_URL: http://ivaluate-ml:8000
+  APP_BASE_URL: http://157.66.100.135
+  FRONTEND_URL: http://157.66.100.135
+  CORS_ORIGINS: http://157.66.100.135
+  SUBSCRIPTION_PREMIUM_DAYS: "90"
+  DEPRECIATION_YEN_TO_VND: "175"
+  DEPRECIATION_DEFAULT_STORAGE: "128"
+  DEPRECIATION_DEFAULT_RAM: "4"
+

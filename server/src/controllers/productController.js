@@ -1,6 +1,9 @@
 const priceInquiryService = require('../services/priceInquiryService');
 const depreciationCurveService = require('../services/depreciationCurveService');
 const counterfactualImpactService = require('../services/counterfactualImpactService');
+const priceForecast30dService = require('../services/priceForecast30dService');
+const listingRepository = require('../repositories/listingRepository');
+const { MARKET_BRANDS } = require('../constants/marketBrands');
 
 /** Lite: khoảng giá + tin tương tự. Premium: thêm lịch sử, dự báo, feature breakdown. */
 function marketPricePayloadForSubscription(full, tier) {
@@ -17,6 +20,23 @@ function marketPricePayloadForSubscription(full, tier) {
 }
 
 class ProductController {
+    /** GET /api/products/brand-catalog — hãng + model nhiều tin nhất */
+    async getBrandCatalog(req, res) {
+        try {
+            const maxBrands = req.query.maxBrands;
+            const perBrand = req.query.perBrand;
+            const data = await listingRepository.getBrandCatalog({ maxBrands, perBrand });
+            res.json(data);
+        } catch (error) {
+            console.warn('Brand catalog DB unavailable, using static fallback:', error.message);
+            res.json({
+                brands: MARKET_BRANDS.map((brand) => ({ ...brand, models: [] })),
+                suggestions: [],
+                fallback: true,
+            });
+        }
+    }
+
     // Handle search and filter requests
     async searchAndEvaluate(req, res) {
         try {
@@ -37,11 +57,13 @@ class ProductController {
                 isSimFree,
                 fullyFunctional,
                 minPrice,
-                maxPrice
+                maxPrice,
+                storage,
+                ram
             } = req.query;
 
             if (!keyword) {
-                return res.status(400).json({ message: "Vui lòng nhập tên sản phẩm cần tìm" });
+                return res.status(400).json({ message: "Please enter a product name to search" });
             }
 
             // Build filters object from query parameters
@@ -65,6 +87,8 @@ class ProductController {
             if (minBattery) filters.minBattery = minBattery;
             if (minPrice) filters.minPrice = minPrice;
             if (maxPrice) filters.maxPrice = maxPrice;
+            if (storage && storage !== 'all') filters.storage = storage;
+            if (ram && ram !== 'all') filters.ram = ram;
 
             // Call service with filters
             const result = await priceInquiryService.getBasicPriceInfo(keyword, filters);
@@ -74,7 +98,7 @@ class ProductController {
         } catch (error) {
             console.error("Lỗi Controller:", error);
             res.status(500).json({ 
-                message: "Lỗi Server nội bộ",
+                message: "Internal server error",
                 error: process.env.NODE_ENV === 'development' ? error.message : undefined
             });
         }
@@ -87,7 +111,8 @@ class ProductController {
     async getMarketPriceRange(req, res) {
         try {
             const { 
-                keyword, 
+                keyword,
+                product_id,
                 condition, 
                 battery_health,
                 screenCondition,
@@ -100,11 +125,13 @@ class ProductController {
                 hasEarphones,
                 isSimFree,
                 fullyFunctional,
-                color
+                color,
+                storage,
+                ram
             } = req.query;
 
             if (!keyword) {
-                return res.status(400).json({ message: "Vui lòng nhập tên sản phẩm" });
+                return res.status(400).json({ message: "Please enter a product name" });
             }
 
             // Build features object với TẤT CẢ thuộc tính
@@ -131,15 +158,27 @@ class ProductController {
             if (isSimFree === '1' || isSimFree === 'true') features.isSimFree = true;
             if (fullyFunctional === '0' || fullyFunctional === 'false') features.fullyFunctional = false;
             else if (fullyFunctional === '1' || fullyFunctional === 'true') features.fullyFunctional = true;
+            if (storage && storage !== 'all') features.storage = storage;
+            if (ram && ram !== 'all') features.ram = ram;
 
-            const result = await priceInquiryService.getMarketPriceRange(keyword, features);
             const tier = req.subscriptionTier || 'lite';
+            const result = await priceInquiryService.getMarketPriceRange(
+                keyword,
+                features,
+                product_id || undefined,
+                { includePremiumData: tier === 'premium' }
+            );
             res.json(marketPricePayloadForSubscription(result, tier));
 
         } catch (error) {
             console.error("Lỗi getMarketPriceRange:", error);
-            res.status(500).json({ 
-                message: error.message || "Lỗi Server nội bộ",
+            const msg = error.message || '';
+            const status =
+                msg === 'Product not found' || msg.includes('Product not found')
+                    ? 404
+                    : 500;
+            res.status(status).json({
+                message: msg || "Internal server error",
                 error: process.env.NODE_ENV === 'development' ? error.message : undefined
             });
         }
@@ -154,7 +193,7 @@ class ProductController {
             const { keyword, ...features } = req.query;
 
             if (!keyword) {
-                return res.status(400).json({ message: "Vui lòng nhập tên sản phẩm" });
+                return res.status(400).json({ message: "Please enter a product name" });
             }
 
             // Parse features
@@ -173,7 +212,7 @@ class ProductController {
         } catch (error) {
             console.error("Lỗi getFeatureImpact:", error);
             res.status(500).json({ 
-                message: error.message || "Lỗi Server nội bộ",
+                message: error.message || "Internal server error",
                 error: process.env.NODE_ENV === 'development' ? error.message : undefined
             });
         }
@@ -188,7 +227,7 @@ class ProductController {
             const { product_id, keyword } = req.query;
             if (!product_id && !keyword) {
                 return res.status(400).json({
-                    message: 'Cần product_id hoặc keyword',
+                    message: 'product_id or keyword is required',
                 });
             }
             const result = await depreciationCurveService.getCurve({
@@ -200,13 +239,13 @@ class ProductController {
             console.error('Lỗi getDepreciationCurve:', error);
             const msg = error.message || '';
             let status = 500;
-            if (msg.includes('Không tìm thấy') || msg.includes('Cần product_id')) {
+            if (msg.includes('Product not found') || msg.includes('product_id or keyword')) {
                 status = 404;
-            } else if (msg.includes('503') || msg.includes('Chưa có model')) {
+            } else if (msg.includes('503') || msg.includes('No model') || msg.includes('model not found')) {
                 status = 503;
             }
             res.status(status).json({
-                message: msg || 'Lỗi Server nội bộ',
+                message: msg || 'Internal server error',
             });
         }
     }
@@ -220,7 +259,7 @@ class ProductController {
         try {
             const { product_id, keyword, filters: bodyFilters = {}, include_all_scenarios } = req.body || {};
             if (!product_id && !keyword) {
-                return res.status(400).json({ message: 'Cần product_id hoặc keyword trong body' });
+                return res.status(400).json({ message: 'product_id or keyword is required in body' });
             }
             const filters = {
                 ...bodyFilters,
@@ -236,13 +275,48 @@ class ProductController {
             console.error('Lỗi postCounterfactualImpact:', error);
             const msg = error.message || '';
             let status = 500;
-            if (msg.includes('Không tìm thấy') || msg.includes('Cần product_id')) {
+            if (msg.includes('Product not found') || msg.includes('product_id or keyword')) {
                 status = 404;
-            } else if (msg.includes('503') || msg.includes('Chưa có model') || msg.includes('Không tìm thấy model')) {
+            } else if (msg.includes('503') || msg.includes('No model') || msg.includes('model not found')) {
                 status = 503;
             }
             res.status(status).json({
-                message: msg || 'Lỗi Server nội bộ',
+                message: msg || 'Internal server error',
+            });
+        }
+    }
+
+    /**
+     * GET /api/products/price-forecast-30d?product_id=...&keyword=...&horizon_days=30
+     * Proxy FastAPI GET /price-forecast/30d
+     */
+    async getPriceForecast30d(req, res) {
+        try {
+            const { product_id, keyword, horizon_days } = req.query;
+            if (!product_id && !keyword) {
+                return res.status(400).json({ message: 'product_id or keyword is required' });
+            }
+            const horizonDays =
+                horizon_days != null && horizon_days !== ''
+                    ? Number.parseInt(String(horizon_days), 10)
+                    : undefined;
+            const result = await priceForecast30dService.getForecast({
+                productId: product_id || undefined,
+                keyword: keyword || undefined,
+                horizonDays: Number.isNaN(horizonDays) ? undefined : horizonDays,
+            });
+            res.json(result);
+        } catch (error) {
+            console.error('Lỗi getPriceForecast30d:', error);
+            const msg = error.message || '';
+            let status = 500;
+            if (msg.includes('Product not found') || msg.includes('product_id or keyword')) {
+                status = 404;
+            } else if (msg.includes('503') || msg.includes('No model') || msg.includes('model not found')) {
+                status = 503;
+            }
+            res.status(status).json({
+                message: msg || 'Internal server error',
             });
         }
     }

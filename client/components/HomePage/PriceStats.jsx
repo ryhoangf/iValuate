@@ -2,20 +2,17 @@
 
 import { Card } from "antd"
 import { ArrowUpOutlined, ArrowDownOutlined, DollarOutlined } from "@ant-design/icons"
+import { useCurrency } from "@/context/CurrencyContext"
 
 export default function PriceStats({ summary }) {
-  if (!summary) return null
+  const { formatFromVnd } = useCurrency()
+  const formatPrice = (price) => formatFromVnd(price)
 
-  const formatPrice = (price) => {
-    return new Intl.NumberFormat("vi-VN", {
-      style: "currency",
-      currency: "VND",
-    }).format(price)
-  }
+  if (!summary) return null
 
   const stats = [
     {
-      title: "Giá thấp nhất",
+      title: "Lowest price",
       value: summary.min,
       icon: <ArrowDownOutlined />,
       color: "text-success",
@@ -23,7 +20,7 @@ export default function PriceStats({ summary }) {
       borderColor: "border-success/20",
     },
     {
-      title: "Giá trung bình",
+      title: "Average price",
       value: summary.avg,
       icon: <DollarOutlined />,
       color: "text-primary",
@@ -32,7 +29,7 @@ export default function PriceStats({ summary }) {
       featured: true,
     },
     {
-      title: "Giá cao nhất",
+      title: "Highest price",
       value: summary.max,
       icon: <ArrowUpOutlined />,
       color: "text-destructive",

@@ -4,22 +4,19 @@ import { useCallback, useEffect, useState } from "react"
 import { Drawer, Collapse, Tag, Button, Typography, Empty, Spin, Space, Popconfirm, App } from "antd"
 import { ReloadOutlined, DeleteOutlined, LinkOutlined, EyeInvisibleOutlined } from "@ant-design/icons"
 import { watchApi } from "@/lib/api"
+import { useCurrency } from "@/context/CurrencyContext"
 
 const { Text } = Typography
 
-const REASON_VI = {
-  better_price: "Giá tốt hơn",
-  better_condition: "Hạng tốt hơn",
-  better_battery: "Pin tốt hơn",
-}
-
-function formatVnd(n) {
-  if (n == null || Number.isNaN(n)) return "—"
-  return new Intl.NumberFormat("vi-VN", { style: "currency", currency: "VND" }).format(n)
+const REASON_EN = {
+  better_price: "Better price",
+  better_condition: "Better grade",
+  better_battery: "Better battery",
 }
 
 export default function WatchesDrawer({ open, onClose }) {
   const { message } = App.useApp()
+  const { formatFromVnd, formatListingPrice } = useCurrency()
   const [loading, setLoading] = useState(false)
   const [items, setItems] = useState([])
 
@@ -29,7 +26,7 @@ export default function WatchesDrawer({ open, onClose }) {
       const data = await watchApi.list(true)
       setItems(Array.isArray(data) ? data : [])
     } catch (e) {
-      message.error(e.message || "Không tải được")
+      message.error(e.message || "Failed to load")
       setItems([])
     } finally {
       setLoading(false)
@@ -52,10 +49,10 @@ export default function WatchesDrawer({ open, onClose }) {
   const removeWatch = async (id) => {
     try {
       await watchApi.remove(id)
-      message.success("Đã ngừng theo dõi")
+      message.success("Watch removed")
       void load()
     } catch (e) {
-      message.error(e.message || "Lỗi")
+      message.error(e.message || "Error")
     }
   }
 
@@ -64,13 +61,13 @@ export default function WatchesDrawer({ open, onClose }) {
       await watchApi.dismiss(watchId, listingId)
       void load()
     } catch (e) {
-      message.error(e.message || "Lỗi")
+      message.error(e.message || "Error")
     }
   }
 
   return (
     <Drawer
-      title="Theo dõi giá & cơ hội"
+      title="Price watches & opportunities"
       placement="right"
       size={420}
       onClose={onClose}
@@ -78,19 +75,19 @@ export default function WatchesDrawer({ open, onClose }) {
     >
       <div className="flex justify-end mb-3">
         <Button icon={<ReloadOutlined />} onClick={() => void load()} loading={loading} size="small">
-          Làm mới
+          Refresh
         </Button>
       </div>
       <Spin spinning={loading && items.length === 0}>
         {!loading && items.length === 0 ? (
-          <Empty description="Chưa có mục theo dõi" />
+          <Empty description="No watches yet" />
         ) : (
           <Collapse
             accordion
             bordered={false}
             className="bg-transparent [&_.ant-collapse-item]:!border-border [&_.ant-collapse-header]:!px-2 [&_.ant-collapse-header]:!py-3"
             defaultActiveKey={[]}
-            expandIconPosition="end"
+            expandIconPlacement="end"
             items={items.map((w) => ({
               key: w.watch_id,
               label: (
@@ -100,19 +97,19 @@ export default function WatchesDrawer({ open, onClose }) {
                       {w.product_name_snapshot || w.product_id}
                     </Text>
                     <div className="mt-0.5 text-xs text-muted-foreground">
-                      Mốc {formatVnd(w.reference_price)}
-                      {w.reference_condition ? ` · hạng ${w.reference_condition}` : ""}
-                      {w.reference_battery != null ? ` · pin ${w.reference_battery}%` : ""}
+                      Ref {formatFromVnd(w.reference_price)}
+                      {w.reference_condition ? ` · grade ${w.reference_condition}` : ""}
+                      {w.reference_battery != null ? ` · battery ${w.reference_battery}%` : ""}
                     </div>
                   </div>
                   <Space size={4} wrap className="shrink-0" onClick={(e) => e.stopPropagation()}>
                     {w.opportunity_count > 0 ? (
-                      <Tag color="red">{w.opportunity_count} cơ hội</Tag>
+                      <Tag color="red">{w.opportunity_count} opportunit{w.opportunity_count === 1 ? "y" : "ies"}</Tag>
                     ) : (
-                      <Tag>Chưa có cơ hội</Tag>
+                      <Tag>No opportunities</Tag>
                     )}
-                    <Popconfirm title="Ngừng theo dõi?" onConfirm={() => removeWatch(w.watch_id)}>
-                      <Button type="text" danger size="small" icon={<DeleteOutlined />} aria-label="Ngừng theo dõi" />
+                    <Popconfirm title="Stop watching?" onConfirm={() => removeWatch(w.watch_id)}>
+                      <Button type="text" danger size="small" icon={<DeleteOutlined />} aria-label="Stop watching" />
                     </Popconfirm>
                   </Space>
                 </div>
@@ -129,14 +126,14 @@ export default function WatchesDrawer({ open, onClose }) {
                           <div className="mb-1 flex flex-wrap gap-1">
                             {(o.reasons || []).map((r) => (
                               <Tag key={r} color="orange">
-                                {REASON_VI[r] || r}
+                                {REASON_EN[r] || r}
                               </Tag>
                             ))}
                           </div>
-                          <div className="font-medium">{formatVnd(o.price)}</div>
+                          <div className="font-medium">{formatListingPrice(o)}</div>
                           <div className="text-xs text-muted-foreground">
-                            {o.condition ? `Hạng ${o.condition}` : ""}
-                            {o.battery_health != null ? ` · pin ${o.battery_health}%` : ""}
+                            {o.condition ? `Grade ${o.condition}` : ""}
+                            {o.battery_health != null ? ` · battery ${o.battery_health}%` : ""}
                             {o.platform ? ` · ${o.platform}` : ""}
                           </div>
                           <div className="mt-2 flex gap-2">
@@ -150,7 +147,7 @@ export default function WatchesDrawer({ open, onClose }) {
                                 rel="noreferrer"
                                 icon={<LinkOutlined />}
                               >
-                                Mở tin
+                                Open listing
                               </Button>
                             ) : null}
                             <Button
@@ -160,7 +157,7 @@ export default function WatchesDrawer({ open, onClose }) {
                               icon={<EyeInvisibleOutlined />}
                               onClick={() => dismiss(w.watch_id, o.listing_id)}
                             >
-                              Ẩn tin này
+                              Hide listing
                             </Button>
                           </div>
                         </li>
@@ -169,7 +166,7 @@ export default function WatchesDrawer({ open, onClose }) {
                   ) : (
                     <Empty
                       className="my-2"
-                      description="Chưa có tin phù hợp"
+                      description="No matching listings yet"
                       image={Empty.PRESENTED_IMAGE_SIMPLE}
                     />
                   )}

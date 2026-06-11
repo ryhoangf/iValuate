@@ -1,8 +1,8 @@
-import { Geist, Geist_Mono } from 'next/font/google'
+import { Geist } from 'next/font/google'
 import './globals.css'
+import AppProviders from '@/components/AppProviders'
 
-const _geist = Geist({ subsets: ["latin"] });
-const _geistMono = Geist_Mono({ subsets: ["latin"] });
+const geist = Geist({ subsets: ["latin"] });
 
 export const metadata = {
   title: 'IVAluate',
@@ -28,12 +28,9 @@ export const metadata = {
 
 export default function RootLayout({ children }) {
   return (
-    <html lang="en">
-      <body
-        className={`font-sans antialiased`}
-        suppressHydrationWarning={true} 
-      >
-        {children}
+    <html lang="en" suppressHydrationWarning>
+      <body className={`${geist.className} font-sans antialiased`} suppressHydrationWarning>
+        <AppProviders>{children}</AppProviders>
         {/* <Analytics /> */} 
       </body>
     </html>

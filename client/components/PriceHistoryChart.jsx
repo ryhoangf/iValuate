@@ -1,7 +1,7 @@
 "use client"
 
 import { Card } from "antd"
-import { LineChartOutlined, HistoryOutlined, RobotOutlined } from "@ant-design/icons"
+import { LineChartOutlined, HistoryOutlined } from "@ant-design/icons"
 import {
   LineChart,
   Line,
@@ -13,117 +13,55 @@ import {
   ResponsiveContainer,
 } from "recharts"
 import dayjs from "dayjs"
+import { useCurrency } from "@/context/CurrencyContext"
+import { ChartSkeleton } from "@/components/LoadingSkeletons"
 
-export default function PriceHistoryChart({ priceHistory, priceForecasts }) {
-  // Format currency for tooltip
-  const formatPrice = (value) => {
-    return new Intl.NumberFormat("vi-VN", {
-      style: "currency",
-      currency: "VND",
-    }).format(value)
-  }
-
-  // Merge historical and forecast data
-  const mergeData = () => {
-    const dataMap = new Map()
-
-    // Add historical data (ALWAYS keep this)
-    if (priceHistory && priceHistory.length > 0) {
-      priceHistory.forEach(item => {
-        const date = dayjs(item.date).format("DD/MM")
-        const fullDate = dayjs(item.date).format("YYYY-MM-DD")
-        dataMap.set(fullDate, {
-          date,
-          fullDate,
-          averagePrice: item.averagePrice,
-          minPrice: item.minPrice,
-          maxPrice: item.maxPrice,
-          count: item.count
-        })
-      })
-    }
-
-    // Add forecast data (OPTIONAL - overlay if available)
-    if (priceForecasts && priceForecasts.history && priceForecasts.history.length > 0) {
-      priceForecasts.history.forEach(item => {
-        const date = dayjs(item.date).format("DD/MM")
-        const fullDate = dayjs(item.date).format("YYYY-MM-DD")
-        const existing = dataMap.get(fullDate)
-        if (existing) {
-          // Same date - add forecast to existing data
-          existing.predictedPrice = item.price
-          existing.confidence = item.confidence
-        } else {
-          // New date - create new entry
-          dataMap.set(fullDate, {
-            date,
-            fullDate,
-            predictedPrice: item.price,
-            confidence: item.confidence
-          })
-        }
-      })
-    }
-
-    return Array.from(dataMap.values()).sort((a, b) => 
-      a.fullDate.localeCompare(b.fullDate)
+function PriceHistoryTooltip({ active, payload, formatPrice }) {
+  if (active && payload && payload.length) {
+    const data = payload[0].payload
+    return (
+      <div className="bg-popover border border-border rounded-lg p-3 shadow-lg text-sm text-popover-foreground">
+        <p className="font-semibold mb-2">{data.date}</p>
+        {data.averagePrice && (
+          <>
+            <p className="text-sm text-blue-600 font-medium">
+              <HistoryOutlined /> Avg: {formatPrice(data.averagePrice, data.originalAveragePrice)}
+            </p>
+            <p className="text-sm text-green-600">Min: {formatPrice(data.minPrice)}</p>
+            <p className="text-sm text-red-600">Max: {formatPrice(data.maxPrice)}</p>
+            {data.count && (
+              <p className="text-sm text-muted-foreground">Listings: {data.count}</p>
+            )}
+          </>
+        )}
+      </div>
     )
   }
+  return null
+}
 
-  const chartData = mergeData()
+export default function PriceHistoryChart({ priceHistory, loading }) {
+  const { formatFromVnd, formatCompactFromVnd } = useCurrency()
 
-  if (!chartData || chartData.length === 0) {
-    return null
+  if (loading && (!priceHistory || priceHistory.length === 0)) {
+    return <ChartSkeleton height={360} />
   }
 
-  const hasHistorical = chartData.some(d => d.averagePrice !== undefined)
-  const hasForecast = chartData.some(d => d.predictedPrice !== undefined)
+  const formatPrice = (value, originalJpy) =>
+    formatFromVnd(value, originalJpy != null ? { originalJpy } : undefined)
 
-  // Custom tooltip
-  const CustomTooltip = ({ active, payload }) => {
-    if (active && payload && payload.length) {
-      const data = payload[0].payload
-      return (
-        <div className="bg-white p-3 border border-gray-200 rounded shadow-lg">
-          <p className="font-semibold mb-2">{data.date}</p>
-          
-          {/* Historical Data */}
-          {data.averagePrice && (
-            <>
-              <p className="text-sm text-blue-600 font-medium">
-                <HistoryOutlined /> Giá TB: {formatPrice(data.averagePrice)}
-              </p>
-              <p className="text-sm text-green-600">
-                Min: {formatPrice(data.minPrice)}
-              </p>
-              <p className="text-sm text-red-600">
-                Max: {formatPrice(data.maxPrice)}
-              </p>
-              {data.count && (
-                <p className="text-sm text-gray-500">
-                  Listings: {data.count}
-                </p>
-              )}
-            </>
-          )}
-          
-          {/* Forecast Data */}
-          {data.predictedPrice && (
-            <>
-              {data.averagePrice && <div className="border-t my-2"></div>}
-              <p className="text-sm text-purple-600 font-medium">
-                <RobotOutlined /> AI Dự đoán: {formatPrice(data.predictedPrice)}
-              </p>
-              {data.confidence && (
-                <p className="text-sm text-gray-500">
-                  Confidence: {data.confidence}%
-                </p>
-              )}
-            </>
-          )}
-        </div>
-      )
-    }
+  const chartData =
+    priceHistory?.map((item) => ({
+      date: dayjs(item.date).format("DD/MM"),
+      fullDate: dayjs(item.date).format("YYYY-MM-DD"),
+      averagePrice: item.averagePrice,
+      originalAveragePrice: item.originalAveragePrice,
+      minPrice: item.minPrice,
+      maxPrice: item.maxPrice,
+      count: item.count,
+    })) ?? []
+
+  if (chartData.length === 0) {
     return null
   }
 
@@ -132,7 +70,7 @@ export default function PriceHistoryChart({ priceHistory, priceForecasts }) {
       title={
         <div className="flex items-center gap-2">
           <LineChartOutlined className="text-primary" />
-          <span>Biểu Đồ Lịch Sử Giá {hasForecast && '& Dự Đoán AI'}</span>
+          <span>Price History Chart</span>
         </div>
       }
       variant="borderless"
@@ -141,95 +79,56 @@ export default function PriceHistoryChart({ priceHistory, priceForecasts }) {
       <ResponsiveContainer width="100%" height={400}>
         <LineChart data={chartData} margin={{ top: 5, right: 30, left: 20, bottom: 5 }}>
           <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
-          <XAxis 
-            dataKey="date" 
+          <XAxis dataKey="date" tick={{ fontSize: 12 }} stroke="#8884d8" />
+          <YAxis
             tick={{ fontSize: 12 }}
             stroke="#8884d8"
+            tickFormatter={(value) => formatCompactFromVnd(value)}
           />
-          <YAxis 
-            tick={{ fontSize: 12 }}
-            stroke="#8884d8"
-            tickFormatter={(value) => `${(value / 1000000).toFixed(1)}M`}
+          <Tooltip content={<PriceHistoryTooltip formatPrice={formatPrice} />} />
+          <Legend iconType="line" wrapperStyle={{ paddingTop: "20px" }} />
+          <Line
+            type="monotone"
+            dataKey="averagePrice"
+            stroke="#1890ff"
+            strokeWidth={3}
+            name="Average Price (Actual)"
+            dot={{ fill: "#1890ff", r: 4 }}
+            activeDot={{ r: 6 }}
+            connectNulls
           />
-          <Tooltip content={<CustomTooltip />} />
-          <Legend 
-            iconType="line"
-            wrapperStyle={{ paddingTop: "20px" }}
+          <Line
+            type="monotone"
+            dataKey="minPrice"
+            stroke="#52c41a"
+            strokeWidth={2}
+            strokeDasharray="5 5"
+            name="Lowest Price"
+            dot={false}
+            connectNulls
           />
-          
-          {/* KEEP ORIGINAL: Historical Price Lines */}
-          {hasHistorical && (
-            <>
-              <Line
-                type="monotone"
-                dataKey="averagePrice"
-                stroke="#1890ff"
-                strokeWidth={3}
-                name="Giá Trung Bình (Thực tế)"
-                dot={{ fill: "#1890ff", r: 4 }}
-                activeDot={{ r: 6 }}
-                connectNulls
-              />
-              <Line
-                type="monotone"
-                dataKey="minPrice"
-                stroke="#52c41a"
-                strokeWidth={2}
-                strokeDasharray="5 5"
-                name="Giá Thấp Nhất"
-                dot={false}
-                connectNulls
-              />
-              <Line
-                type="monotone"
-                dataKey="maxPrice"
-                stroke="#ff4d4f"
-                strokeWidth={2}
-                strokeDasharray="5 5"
-                name="Giá Cao Nhất"
-                dot={false}
-                connectNulls
-              />
-            </>
-          )}
-          
-          {/* NEW: AI Predicted Price Line (optional overlay) */}
-          {hasForecast && (
-            <Line
-              type="monotone"
-              dataKey="predictedPrice"
-              stroke="#722ed1"
-              strokeWidth={3}
-              name="AI Dự Đoán"
-              dot={{ fill: "#722ed1", r: 4, strokeWidth: 2, stroke: "#fff" }}
-              activeDot={{ r: 6 }}
-              strokeDasharray="8 4"
-              connectNulls
-            />
-          )}
+          <Line
+            type="monotone"
+            dataKey="maxPrice"
+            stroke="#ff4d4f"
+            strokeWidth={2}
+            strokeDasharray="5 5"
+            name="Highest Price"
+            dot={false}
+            connectNulls
+          />
         </LineChart>
       </ResponsiveContainer>
 
-      {/* Legend Info */}
-      <div className="mt-4 p-3 bg-gray-50 rounded text-xs">
+      <div className="mt-4 p-3 bg-muted rounded text-xs text-foreground/80">
         <div className="flex flex-col gap-2">
-          {hasHistorical && (
-            <div className="flex items-center gap-2 text-gray-600">
-              <HistoryOutlined className="text-blue-500" />
-              <span><strong>Đường liền xanh dương:</strong> Giá trung bình thực tế từ listings</span>
-            </div>
-          )}
-          {hasHistorical && (
-            <div className="flex items-center gap-2 text-gray-600">
-              <span className="ml-5">Đường đứt xanh lá/đỏ: Giá thấp nhất/cao nhất</span>
-            </div>
-          )}
-          {hasForecast && (
-            <div className="flex items-center gap-2 text-gray-600">
-              <RobotOutlined className="text-purple-500" />
-              <span><strong>Đường đứt tím:</strong> Giá dự đoán bởi AI model</span>
-            </div>
-          )}
+          <div className="flex items-center gap-2 text-foreground/80">
+            <HistoryOutlined className="text-blue-500" />
+            <span><strong>Solid blue line:</strong> Actual average price from listings</span>
+          </div>
+          <div className="flex items-center gap-2 text-foreground/80">
+            <span className="ml-5">Dashed green/red: lowest/highest price</span>
+          </div>
         </div>
       </div>
     </Card>

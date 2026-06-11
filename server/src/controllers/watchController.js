@@ -19,7 +19,11 @@ class WatchController {
         } catch (e) {
             console.error('create watch:', e);
             const msg = e.message || '';
-            if (msg.includes('Thiếu') || msg.includes('Không tìm thấy') || msg.includes('Chưa có')) {
+            if (
+                msg.includes('required') ||
+                msg.includes('not found') ||
+                msg.includes('No listings')
+            ) {
                 return res.status(400).json({ message: msg });
             }
             this._handleDbError(res, e);
@@ -32,7 +36,7 @@ class WatchController {
             res.json({ ok: true });
         } catch (e) {
             const msg = e.message || '';
-            if (msg.includes('Không tìm thấy')) {
+            if (msg.includes('not found')) {
                 return res.status(404).json({ message: msg });
             }
             console.error('remove watch:', e);
@@ -44,13 +48,13 @@ class WatchController {
         try {
             const listingId = req.body.listing_id;
             if (!listingId) {
-                return res.status(400).json({ message: 'Thiếu listing_id' });
+                return res.status(400).json({ message: 'listing_id is required' });
             }
             await watchService.dismissOpportunity(req.userId, req.params.id, listingId);
             res.json({ ok: true });
         } catch (e) {
             const msg = e.message || '';
-            if (msg.includes('Không tìm thấy')) {
+            if (msg.includes('not found')) {
                 return res.status(404).json({ message: msg });
             }
             console.error('dismiss watch listing:', e);
@@ -63,10 +67,10 @@ class WatchController {
         if (code === 'ER_NO_SUCH_TABLE' || code === 'ECONNREFUSED') {
             return res.status(503).json({
                 message:
-                    'Chưa chạy migration: mở server/sql/product_watches.sql trên MySQL (ivaluate).',
+                    'Migration not applied: run server/sql/product_watches.sql on MySQL (ivaluate).',
             });
         }
-        res.status(500).json({ message: e.message || 'Lỗi server' });
+        res.status(500).json({ message: e.message || 'Server error' });
     }
 }
 

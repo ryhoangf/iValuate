@@ -3,16 +3,17 @@ const priceForecastRepository = require('../repositories/PriceForecastRepository
 const listingRepository = require('../repositories/listingRepository');
 
 class MLModelService {
-    async predictPriceInquiry(productId, features = {}) {
+    async predictPriceInquiry(productId, features = {}, opts = {}) {
         try {
-            // 1. Lấy historical data (REAL prices từ price_history)
-            const historicalData = await priceHistoryRepository.calculatePriceRange(productId, 30);
-            
-            // 2. Lấy ML forecast (PREDICTED price từ price_forecasts) - OPTIONAL
-            const mlForecast = await priceForecastRepository.getLatestForecast(productId).catch(() => null);
-            
-            // 3. Lấy current listings có features tương tự
-            const currentListings = await this.getFilteredListingsByFeatures(productId, features);
+            const useForecastSignal = opts.useForecastSignal === true;
+            // Run all independent data fetches in parallel
+            const [historicalData, mlForecast, currentListings] = await Promise.all([
+                priceHistoryRepository.calculatePriceRange(productId, 30),
+                useForecastSignal
+                    ? priceForecastRepository.getLatestForecast(productId).catch(() => null)
+                    : Promise.resolve(null),
+                this.getFilteredListingsByFeatures(productId, features),
+            ]);
             
             // 4. Tính statistical price range
             let priceRange;
@@ -123,7 +124,8 @@ class MLModelService {
         if (features.isSimFree !== undefined) filters.isSimFree = features.isSimFree;
         if (features.fullyFunctional !== undefined) filters.fullyFunctional = features.fullyFunctional;
 
-        return await listingRepository.findActiveListingsByName(product.name, filters);
+        // Limit to 2000 rows for price statistics — sufficient for accurate range calculation
+        return await listingRepository.findActiveListingsByName(product.name, filters, 2000);
     }
 
     /**

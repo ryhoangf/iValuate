@@ -39,17 +39,17 @@ class WatchService {
         } = body;
 
         if (!product_id) {
-            throw new Error('Thiếu product_id');
+            throw new Error('product_id is required');
         }
 
         const product = await listingRepository.findProductById(product_id);
-        if (!product) throw new Error('Không tìm thấy sản phẩm');
+        if (!product) throw new Error('Product not found');
 
         let reference_price = refIn != null ? Number(refIn) : null;
         if (reference_price == null || Number.isNaN(reference_price)) {
             const listings = await listingRepository.findActiveListingsByProductId(product_id, 50);
             if (listings.length === 0) {
-                throw new Error('Chưa có tin đăng để lấy mốc giá — thêm reference_price hoặc thử sau');
+                throw new Error('No listings to derive reference price — set reference_price or try again later');
             }
             reference_price = Math.min(...listings.map((l) => Number(l.price)));
         }
@@ -150,6 +150,7 @@ class WatchService {
                 listing_id: L.id,
                 name: L.name,
                 price,
+                originalPrice: L.originalPrice,
                 condition: L.condition,
                 battery_health: L.battery_health,
                 platform: L.platform,
@@ -166,13 +167,13 @@ class WatchService {
 
     async removeWatch(userId, watchId) {
         const ok = await watchRepository.deactivate(watchId, userId);
-        if (!ok) throw new Error('Không tìm thấy watch hoặc không thuộc tài khoản');
+        if (!ok) throw new Error('Watch not found or does not belong to your account');
         return { ok: true };
     }
 
     async dismissOpportunity(userId, watchId, listingId) {
         const w = await watchRepository.findByIdForUser(watchId, userId);
-        if (!w) throw new Error('Không tìm thấy watch');
+        if (!w) throw new Error('Watch not found');
         await watchRepository.dismissListing(watchId, listingId);
         return { ok: true };
     }

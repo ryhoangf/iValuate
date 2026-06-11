@@ -1,0 +1,57 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ivaluate-web
+  namespace: ivaluate
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: ivaluate-web
+  template:
+    metadata:
+      labels:
+        app: ivaluate-web
+    spec:
+      nodeSelector:
+        role: serving
+      containers:
+        - name: web
+          image: localhost/ivaluate-web:local
+          imagePullPolicy: IfNotPresent
+          env:
+            - name: BACKEND_URL
+              value: http://ivaluate-api:5000
+          ports:
+            - containerPort: 3000
+          resources:
+            requests:
+              cpu: 100m
+              memory: 128Mi
+            limits:
+              cpu: "1"
+              memory: 512Mi
+          readinessProbe:
+            httpGet:
+              path: /
+              port: 3000
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          livenessProbe:
+            httpGet:
+              path: /
+              port: 3000
+            initialDelaySeconds: 20
+            periodSeconds: 20
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: ivaluate-web
+  namespace: ivaluate
+spec:
+  selector:
+    app: ivaluate-web
+  ports:
+    - port: 3000
+      targetPort: 3000

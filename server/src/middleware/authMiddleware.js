@@ -45,7 +45,7 @@ function requirePremium(req, res, next) {
         return res.status(403).json({
             code: 'PREMIUM_REQUIRED',
             message:
-                'Tính năng này thuộc gói Premium: biểu đồ lịch sử & dự báo, đường cong trượt giá, phân tích yếu tố ML chi tiết.',
+                'This feature requires Premium: price history & forecasts, depreciation curves, and detailed ML feature impact.',
         });
     }
     next();
@@ -55,14 +55,14 @@ function requireAuth(req, res, next) {
     const h = req.headers.authorization || req.headers.Authorization;
     const rawToken = extractBearerToken(h);
     if (!rawToken) {
-        return res.status(401).json({ message: 'Cần đăng nhập (Bearer token)' });
+        return res.status(401).json({ message: 'Sign in required (Bearer token)' });
     }
     let secret;
     try {
         secret = getJwtSecret();
     } catch (e) {
         console.error('JWT config:', e.message);
-        return res.status(500).json({ message: 'Máy chủ chưa cấu hình JWT_SECRET' });
+        return res.status(500).json({ message: 'Server JWT_SECRET is not configured' });
     }
     try {
         const payload = jwt.verify(rawToken, secret, { algorithms: ['HS256'] });
@@ -73,11 +73,11 @@ function requireAuth(req, res, next) {
     } catch (err) {
         if (err.name === 'TokenExpiredError') {
             return res.status(401).json({
-                message: 'Phiên đăng nhập đã hết hạn — vui lòng đăng nhập lại.',
+                message: 'Session expired — please sign in again.',
             });
         }
         return res.status(401).json({
-            message: 'Token không hợp lệ — vui lòng đăng nhập lại (hoặc secret JWT đổi sau khi bạn đăng nhập).',
+            message: 'Invalid token — please sign in again (or JWT secret changed after you signed in).',
         });
     }
 }

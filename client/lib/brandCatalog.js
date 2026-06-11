@@ -1,0 +1,140 @@
+/**
+ * @deprecated Menu hãng lấy từ GET /api/products/brand-catalog (MySQL).
+ * Giữ file tham khảo / fallback thủ công nếu cần.
+ */
+/** Danh mục hãng + model phổ biến cho header trang chủ (tìm kiếm nhanh). */
+export const BRAND_CATALOG = [
+  {
+    id: "apple",
+    label: "Apple",
+    accent: "from-slate-400 to-slate-600",
+    models: [
+      "iPhone 16 Pro Max",
+      "iPhone 16 Pro",
+      "iPhone 15 Pro Max",
+      "iPhone 15 Pro",
+      "iPhone 15",
+      "iPhone 14 Pro Max",
+      "iPhone 14",
+      "iPhone 13",
+      "iPhone SE",
+    ],
+  },
+  {
+    id: "samsung",
+    label: "Samsung",
+    accent: "from-blue-500 to-blue-700",
+    models: [
+      "Samsung Galaxy S24 Ultra",
+      "Samsung Galaxy S24+",
+      "Samsung Galaxy S24",
+      "Samsung Galaxy S23 Ultra",
+      "Samsung Galaxy Z Fold6",
+      "Samsung Galaxy Z Flip6",
+      "Samsung Galaxy A55",
+      "Samsung Galaxy A35",
+    ],
+  },
+  {
+    id: "xiaomi",
+    label: "Xiaomi",
+    accent: "from-orange-500 to-orange-700",
+    models: [
+      "Xiaomi 14 Ultra",
+      "Xiaomi 14",
+      "Xiaomi 13T Pro",
+      "Xiaomi 13T",
+      "Redmi Note 13 Pro",
+      "Redmi Note 13",
+      "POCO X6 Pro",
+      "POCO F6",
+    ],
+  },
+  {
+    id: "oppo",
+    label: "OPPO",
+    accent: "from-emerald-500 to-emerald-700",
+    models: [
+      "OPPO Find X7 Ultra",
+      "OPPO Find X7",
+      "OPPO Reno12 Pro",
+      "OPPO Reno12",
+      "OPPO A79",
+      "OPPO A58",
+    ],
+  },
+  {
+    id: "vivo",
+    label: "vivo",
+    accent: "from-sky-500 to-sky-700",
+    models: [
+      "vivo X100 Pro",
+      "vivo X100",
+      "vivo V30 Pro",
+      "vivo V30",
+      "vivo Y100",
+      "vivo Y36",
+    ],
+  },
+  {
+    id: "google",
+    label: "Google",
+    accent: "from-red-400 to-yellow-500",
+    models: [
+      "Google Pixel 9 Pro XL",
+      "Google Pixel 9 Pro",
+      "Google Pixel 9",
+      "Google Pixel 8 Pro",
+      "Google Pixel 8",
+      "Google Pixel 8a",
+    ],
+  },
+  {
+    id: "oneplus",
+    label: "OnePlus",
+    accent: "from-red-600 to-red-800",
+    models: [
+      "OnePlus 12",
+      "OnePlus 12R",
+      "OnePlus Open",
+      "OnePlus Nord 4",
+      "OnePlus Nord CE 4",
+    ],
+  },
+  {
+    id: "huawei",
+    label: "Huawei",
+    accent: "from-rose-500 to-rose-700",
+    models: [
+      "Huawei Pura 70 Ultra",
+      "Huawei Pura 70 Pro",
+      "Huawei Mate 60 Pro",
+      "Huawei nova 12 Pro",
+      "Huawei nova 12",
+    ],
+  },
+  {
+    id: "realme",
+    label: "realme",
+    accent: "from-yellow-400 to-amber-600",
+    models: [
+      "realme GT 6",
+      "realme GT Neo6",
+      "realme 12 Pro+",
+      "realme 12 Pro",
+      "realme C67",
+    ],
+  },
+  {
+    id: "other",
+    label: "Other",
+    accent: "from-slate-500 to-slate-700",
+    models: [
+      "ASUS ROG Phone 8",
+      "Sony Xperia 1 VI",
+      "Nothing Phone (2a)",
+      "Honor Magic6 Pro",
+      "Nokia G42",
+    ],
+  },
+]

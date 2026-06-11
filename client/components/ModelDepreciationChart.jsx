@@ -1,7 +1,8 @@
-"use client";
+"use client"
 
-import { Alert, Card, Spin } from "antd";
+import { Alert, Card } from "antd";
 import { ExperimentOutlined } from "@ant-design/icons";
+import { useCurrency } from "@/context/CurrencyContext";
 import {
   LineChart,
   Line,
@@ -13,15 +14,13 @@ import {
   ResponsiveContainer,
 } from "recharts";
 
+import { ChartSkeleton } from "@/components/LoadingSkeletons";
+
 export default function ModelDepreciationChart({ curve, loading, error }) {
+  const { formatFromVnd, formatCompactFromVnd } = useCurrency();
+
   if (loading) {
-    return (
-      <Card className="shadow-sm">
-        <Spin spinning tip="Đang tính đường cong mô hình...">
-          <div className="min-h-[120px]" />
-        </Spin>
-      </Card>
-    );
+    return <ChartSkeleton height={280} />;
   }
 
   if (error === "PREMIUM_REQUIRED") {
@@ -29,8 +28,8 @@ export default function ModelDepreciationChart({ curve, loading, error }) {
       <Alert
         type="info"
         showIcon
-        title="Gói Premium"
-        description="Đường cong trượt giá theo mô hình chỉ dành cho gói Premium. Gói Lite vẫn có khoảng giá thị trường và tin tương tự."
+        title="Premium plan"
+        description="Model depreciation curves are available on Premium only. Lite still includes market price range and similar listings."
         className="shadow-sm"
       />
     );
@@ -41,7 +40,7 @@ export default function ModelDepreciationChart({ curve, loading, error }) {
       <Alert
         type="warning"
         showIcon
-        title="Không tải được đường cong mô hình"
+        title="Could not load model depreciation curve"
         description={error}
         className="shadow-sm"
       />
@@ -55,15 +54,14 @@ export default function ModelDepreciationChart({ curve, loading, error }) {
     priceVnd: curve.prices_vnd[i],
   }));
 
-  const formatPrice = (v) =>
-    new Intl.NumberFormat("vi-VN", { style: "currency", currency: "VND" }).format(v);
+  const formatPrice = (v) => formatFromVnd(v);
 
   return (
     <Card
       title={
         <div className="flex items-center gap-2">
           <ExperimentOutlined className="text-slate-500" />
-          <span>Đường cong trượt giá (mô hình)</span>
+          <span>Model depreciation curve</span>
         </div>
       }
       variant="borderless"
@@ -73,15 +71,15 @@ export default function ModelDepreciationChart({ curve, loading, error }) {
         type="info"
         showIcon
         className="mb-0"
-        title="Mô phỏng theo mô hình, cùng điều kiện tham chiếu"
+        title="Model simulation with fixed reference conditions"
         description={
           <div className="text-sm space-y-1">
             {curve.disclaimer && <p>{curve.disclaimer}</p>}
             {curve.model_version && (
               <p>
-                Phiên bản mô hình: <strong>{curve.model_version}</strong>
+                Model version: <strong>{curve.model_version}</strong>
                 {curve.reference_year != null && (
-                  <> · Năm tham chiếu: {curve.reference_year}</>
+                  <> · Reference year: {curve.reference_year}</>
                 )}
               </p>
             )}
@@ -107,7 +105,7 @@ export default function ModelDepreciationChart({ curve, loading, error }) {
             <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
             <XAxis
               dataKey="ageYears"
-              name="Tuổi máy (năm)"
+              name="Device age (years)"
               tick={{ fontSize: 12 }}
               label={{
                 value: "device_age_years",
@@ -118,17 +116,17 @@ export default function ModelDepreciationChart({ curve, loading, error }) {
             />
             <YAxis
               tick={{ fontSize: 12 }}
-              tickFormatter={(v) => `${(v / 1_000_000).toFixed(1)}M`}
+              tickFormatter={(v) => formatCompactFromVnd(v)}
             />
             <Tooltip
-              formatter={(value) => [formatPrice(value), "Giá (VND)"]}
-              labelFormatter={(label) => `Tuổi: ${label} năm`}
+              formatter={(value) => [formatPrice(value), "Price (VND)"]}
+              labelFormatter={(label) => `Age: ${label} years`}
             />
             <Legend wrapperStyle={{ paddingTop: 16 }} iconSize={10} />
             <Line
               type="monotone"
               dataKey="priceVnd"
-              name="Dự đoán giá (VND)"
+              name="Predicted price (VND)"
               stroke="#1890ff"
               strokeWidth={2}
               dot={{ r: 3, fill: "#fff", stroke: "#1890ff", strokeWidth: 2 }}
