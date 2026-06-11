@@ -1,9 +1,10 @@
 name: Build and deploy
 
-on:
+"on":
   push:
-    branches: [main]
-  workflow_dispatch:
+    branches:
+      - main
+  workflow_dispatch: {}
 
 concurrency:
   group: production

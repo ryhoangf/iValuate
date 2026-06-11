@@ -1,9 +1,11 @@
 name: CI
 
-on:
-  pull_request:
+"on":
+  pull_request: {}
   push:
-    branches: [main]
+    branches:
+      - main
+  workflow_dispatch: {}
 
 permissions:
   contents: read
@@ -40,4 +42,3 @@ jobs:
       - run: npm ci
       - run: node --check index.js
       - run: find src -name '*.js' -print0 | xargs -0 -n1 node --check
-
