@@ -4,7 +4,11 @@ const productController = require('../controllers/productController');
 const { optionalAuth, requireAuth, requirePremium } = require('../middleware/authMiddleware');
 const { cacheResponse } = require('../middleware/cacheResponse');
 
-router.get('/brand-catalog', cacheResponse(21600, 'brand-catalog'), productController.getBrandCatalog);
+router.get(
+    '/brand-catalog',
+    cacheResponse(21600, 'brand-catalog-v2'),
+    productController.getBrandCatalog
+);
 router.get('/search', cacheResponse(1800, 'search'), productController.searchAndEvaluate);
 router.get(
     '/market-price',

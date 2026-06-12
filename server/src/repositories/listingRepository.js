@@ -391,11 +391,16 @@ class ListingRepository {
                     modelSeries: modelLabel,
                     productId: row.product_id,
                     listingCount: count,
+                    representativeListingCount: count,
                 });
             } else {
                 const cur = modelAgg.get(key);
                 cur.listingCount += count;
                 cur.brandLabel = pickBrandDisplayLabel(cur.brandLabel, brand);
+                if (count > cur.representativeListingCount) {
+                    cur.productId = row.product_id;
+                    cur.representativeListingCount = count;
+                }
             }
         }
 
