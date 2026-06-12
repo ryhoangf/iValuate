@@ -1,22 +1,16 @@
 "use client"
 
 import { useCallback, useState } from "react"
-import { useMutation, useQueryClient } from "@tanstack/react-query"
+import { useMutation } from "@tanstack/react-query"
 import { App } from "antd"
 import {
   INITIAL_FILTERS,
   getResetFilters,
-  serializeFiltersForCache,
 } from "@/lib/filters"
 import { runSearchPipeline } from "@/lib/searchPipeline"
 
-function searchCacheKey(keyword, filters) {
-  return ["searchBundle", keyword, serializeFiltersForCache(filters)]
-}
-
 export function useSearch({ onSearchStart, onSearchSuccess } = {}) {
   const { message } = App.useApp()
-  const queryClient = useQueryClient()
 
   const [filters, setFilters] = useState(INITIAL_FILTERS)
   const [currentKeyword, setCurrentKeyword] = useState("")
@@ -32,16 +26,8 @@ export function useSearch({ onSearchStart, onSearchSuccess } = {}) {
   }, [])
 
   const searchMutation = useMutation({
-    mutationFn: async ({ keyword, appliedFilters, productId, skipCache }) => {
-      const cacheKey = searchCacheKey(keyword, appliedFilters)
-      if (!skipCache) {
-        const cached = queryClient.getQueryData(cacheKey)
-        if (cached) return cached
-      }
-      const bundle = await runSearchPipeline(keyword, appliedFilters, productId)
-      queryClient.setQueryData(cacheKey, bundle)
-      return bundle
-    },
+    mutationFn: ({ keyword, appliedFilters, productId }) =>
+      runSearchPipeline(keyword, appliedFilters, productId),
     onMutate: () => {
       onSearchStart?.()
     },
@@ -92,7 +78,6 @@ export function useSearch({ onSearchStart, onSearchSuccess } = {}) {
         keyword,
         appliedFilters,
         productId,
-        skipCache: false,
       })
     },
     [filters, searchMutation]
