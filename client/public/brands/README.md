@@ -2,9 +2,9 @@
 
 Place one logo file per brand in this folder. Files are served from `/brands/{id}.{ext}`.
 
-These **10 brands** appear in the market header (fixed order):
+These **8 brands** appear in the market header (fixed order):
 
-Apple · Samsung · Sony · SHARP · Google · Xiaomi · OPPO · Huawei · ASUS · Realme
+Apple · Samsung · Sony · SHARP · Google · Xiaomi · OPPO · Huawei
 
 ## Filename
 
@@ -20,8 +20,6 @@ Use the brand **`id`** (lowercase slug), for example:
 | `xiaomi.webp` | Xiaomi |
 | `oppo.webp` | OPPO |
 | `huawei.webp` | Huawei |
-| `asus.webp` | ASUS |
-| `realme.webp` | Realme |
 
 **Recommended format: WebP** (`.webp`). Also supported: `.png`, `.svg` (tried in that order if WebP is missing).
 

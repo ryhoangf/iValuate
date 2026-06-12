@@ -175,7 +175,7 @@ export default function BrandMarketHeader({
           ) : (
             <div
               ref={brandRowRef}
-              className="brand-market-brands grid w-full grid-cols-5 sm:grid-cols-10 divide-x divide-y sm:divide-y-0 divide-border"
+              className="brand-market-brands grid w-full grid-cols-4 sm:grid-cols-8 divide-x divide-y sm:divide-y-0 divide-border"
             >
               {brands.map((brand) => {
                 const isOpen = openId === brand.id

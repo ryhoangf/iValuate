@@ -8,8 +8,6 @@ const MARKET_BRANDS = [
     { id: 'xiaomi', label: 'Xiaomi' },
     { id: 'oppo', label: 'OPPO' },
     { id: 'huawei', label: 'Huawei' },
-    { id: 'asus', label: 'ASUS' },
-    { id: 'realme', label: 'Realme' },
 ];
 
 const MARKET_BRAND_ID_SET = new Set(MARKET_BRANDS.map((b) => b.id));
