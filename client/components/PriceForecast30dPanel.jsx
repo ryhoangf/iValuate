@@ -420,6 +420,10 @@ export default function PriceForecast30dPanel({
                 ? "history trend"
                 : forecast.method === "rolling_median"
                   ? "7-day rolling median"
+                  : forecast.method === "damped_median_trend"
+                    ? "damped median trend"
+                    : forecast.method === "converging_median"
+                      ? "converging 7-day median"
                 : "ML model"}
           </span>
         )}
