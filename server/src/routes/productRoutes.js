@@ -29,7 +29,7 @@ router.get(
     '/price-forecast-30d',
     requireAuth,
     requirePremium,
-    cacheResponse(21600, 'price-forecast-30d-v2'),
+    cacheResponse(21600, 'price-forecast-30d-v3'),
     productController.getPriceForecast30d
 );
 

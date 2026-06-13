@@ -3,6 +3,7 @@
 import { Alert, Card, Col, Row, Spin, Statistic, Tag } from "antd"
 import { LineChartOutlined, RobotOutlined, TrophyOutlined } from "@ant-design/icons"
 import {
+  Area,
   Line,
   XAxis,
   YAxis,
@@ -45,6 +46,8 @@ export function normalizeForecast30d(raw) {
       date: pick(p, "forecast_date", "date"),
       offsetDays: pick(p, "day_offset", "offset_days", "day"),
       price: pick(p, "predicted_price_vnd", "price_vnd", "price"),
+      lowerPrice: pick(p, "lower_price_vnd", "lower_vnd"),
+      upperPrice: pick(p, "upper_price_vnd", "upper_vnd"),
       confidence: confidencePct,
       isForecast: true,
     }))
@@ -149,6 +152,14 @@ function buildForecastChartData(forecast, priceHistory) {
       fullDate: d.format("YYYY-MM-DD"),
       dateLabel: d.format("DD/MM"),
       forecastPrice: Number(p.price),
+      forecastLower:
+        p.lowerPrice != null ? Number(p.lowerPrice) : undefined,
+      forecastUpper:
+        p.upperPrice != null ? Number(p.upperPrice) : undefined,
+      forecastRange:
+        p.lowerPrice != null && p.upperPrice != null
+          ? [Number(p.lowerPrice), Number(p.upperPrice)]
+          : undefined,
     })
   })
 
@@ -176,7 +187,8 @@ function buildEvenTimeTicks(rows, tickCount = 6) {
 
 function buildPriceDomain(rows) {
   const prices = rows.flatMap((r) =>
-    [r.actualPrice, r.forecastPrice].filter((v) => v != null && v > 0)
+    [r.actualPrice, r.forecastPrice, r.forecastLower, r.forecastUpper]
+      .filter((v) => v != null && v > 0)
   )
   if (!prices.length) return ["auto", "auto"]
 
@@ -199,6 +211,11 @@ function ForecastTooltip({ active, payload, formatPrice }) {
       )}
       {d.forecastPrice != null && (
         <p className="text-purple-600">Forecast: {formatPrice(d.forecastPrice)}</p>
+      )}
+      {d.forecastLower != null && d.forecastUpper != null && (
+        <p className="text-purple-400">
+          P10-P90 range: {formatPrice(d.forecastLower)} - {formatPrice(d.forecastUpper)}
+        </p>
       )}
     </div>
   )
@@ -389,6 +406,15 @@ export default function PriceForecast30dPanel({
             dot={{ r: 3 }}
             connectNulls
           />
+          <Area
+            type="monotone"
+            dataKey="forecastRange"
+            name="P10-P90 range"
+            stroke="none"
+            fill="#b37feb"
+            fillOpacity={0.2}
+            connectNulls
+          />
           <Line
             type="monotone"
             dataKey="forecastPrice"
@@ -424,11 +450,13 @@ export default function PriceForecast30dPanel({
                     ? "damped median trend"
                     : forecast.method === "converging_median"
                       ? "converging 7-day median"
+                    : forecast.method === "temporal_ml"
+                      ? "temporal gradient boosting"
                 : "ML model"}
           </span>
         )}
         {forecast.confidencePct != null && (
-          <span>Confidence: {forecast.confidencePct}%</span>
+          <span>Data quality: {forecast.confidencePct}%</span>
         )}
       </div>
     </Card>
