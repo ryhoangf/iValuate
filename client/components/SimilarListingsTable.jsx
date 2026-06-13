@@ -78,8 +78,10 @@ function getStorageLabel(record) {
 // ─── price cell with diff signal ──────────────────────────────────────────────
 
 function PriceCell({ record }) {
-  const { formatListingPrice, formatFromVnd } = useCurrency()
-  const diff = record.priceDifference ?? record.price_difference
+  const { formatListingPrice } = useCurrency()
+  const rawDiff = record.priceDifference ?? record.price_difference
+  const parsedDiff = Number(rawDiff)
+  const diff = Number.isFinite(parsedDiff) ? parsedDiff : null
 
   const tone =
     diff == null       ? "neutral" :

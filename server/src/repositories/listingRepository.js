@@ -272,7 +272,7 @@ class ListingRepository {
                 l.source_url,
                 l.platform,
                 l.posted_at,
-                ABS(l.price - ?) as price_difference
+                (l.price - ?) / NULLIF(?, 0) as price_difference
             FROM active_listings l
             JOIN products p ON l.product_id = p.product_id
             WHERE l.price BETWEEN ? AND ?
@@ -281,8 +281,11 @@ class ListingRepository {
             LIMIT ?
         `;
         
-        const targetPrice = (priceRange.min + priceRange.max) / 2;
+        const targetPrice = Number(priceRange.avg)
+            || Number(priceRange.average)
+            || (Number(priceRange.min) + Number(priceRange.max)) / 2;
         const [rows] = await db.query(query, [
+            targetPrice,
             targetPrice,
             priceRange.min,
             priceRange.max,
