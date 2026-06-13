@@ -83,6 +83,11 @@ export default function ModelDepreciationChart({ curve, loading, error }) {
                 )}
               </p>
             )}
+            {curve.curve_method && (
+              <p>
+                Curve method: <strong>{curve.curve_method}</strong>
+              </p>
+            )}
             {curve.query && (
               <p>
                 Baseline: {curve.query.model_line} · {curve.query.storage}GB · RAM{" "}
