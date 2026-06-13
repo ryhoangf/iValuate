@@ -277,7 +277,7 @@ class ListingRepository {
             JOIN products p ON l.product_id = p.product_id
             WHERE l.price BETWEEN ? AND ?
             AND l.product_id = ?
-            ORDER BY price_difference ASC
+            ORDER BY ABS(l.price - ?) ASC
             LIMIT ?
         `;
         
@@ -290,6 +290,7 @@ class ListingRepository {
             priceRange.min,
             priceRange.max,
             productId,
+            targetPrice,
             limit
         ]);
         
