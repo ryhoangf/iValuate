@@ -1,8 +1,7 @@
 "use client"
 
-import { Card, Statistic, Row, Col, Tag, Progress, Tooltip } from "antd"
-import { DollarOutlined, LineChartOutlined, RobotOutlined, DatabaseOutlined } from "@ant-design/icons"
-import dayjs from "dayjs"
+import { Card, Statistic, Row, Col, Tag, Tooltip } from "antd"
+import { DollarOutlined, LineChartOutlined, DatabaseOutlined } from "@ant-design/icons"
 import { useCurrency } from "@/context/CurrencyContext"
 import { parseBaseSpecs } from "@/lib/parseBaseSpecs"
 import { formatStorageLabel, formatRamLabel, parseStorageToGb } from "@/lib/formatSpecs"
@@ -12,32 +11,12 @@ export default function MarketPriceCard({ marketData }) {
 
   if (!marketData) return null
 
-  const { marketPriceRange, product, featureAnalysis, dataSource, priceForecasts } = marketData
+  const { marketPriceRange, product, featureAnalysis, dataSource } = marketData
   const specs = parseBaseSpecs(product?.baseSpecs)
   const storageGb = parseStorageToGb(specs.storage ?? specs.storage_gb ?? specs.capacity)
   const ramGb = specs.ram ?? specs.ram_gb
 
   const formatPrice = (price) => formatFromVnd(price)
-
-  const getConfidenceClass = (confidence) => {
-    const pct = confidence > 1 ? confidence / 100 : confidence
-    if (pct >= 0.8) return "text-emerald-700 dark:text-emerald-400"
-    if (pct >= 0.6) return "text-amber-700 dark:text-amber-400"
-    return "text-red-700 dark:text-red-400"
-  }
-
-  const getConfidenceBarColor = (confidence) => {
-    const pct = confidence > 1 ? confidence / 100 : confidence
-    if (pct >= 0.8) return "#059669"
-    if (pct >= 0.6) return "#d97706"
-    return "#dc2626"
-  }
-
-  const formatConfidencePct = (confidence) => {
-    const n = Number(confidence)
-    if (Number.isNaN(n)) return "—"
-    return n > 1 ? n.toFixed(2) : (n * 100).toFixed(2)
-  }
 
   // Get data source badge
   const getDataSourceBadge = (source) => {
@@ -148,56 +127,6 @@ export default function MarketPriceCard({ marketData }) {
           showInfo={false}
         />
       </div> */}
-
-      {/* AI Forecast Section */}
-      {priceForecasts?.latest && (
-        <div className="mt-4 pt-4 border-t border-border">
-          <div className="flex items-center gap-2 mb-1">
-            <RobotOutlined className="text-primary" aria-hidden />
-            <span className="text-sm font-medium text-foreground">AI price prediction</span>
-          </div>
-          <p className="text-xs text-muted-foreground mb-3">
-            Model price at ETL run date — not a 30-day forecast.
-          </p>
-          <div className="rounded-lg border border-border bg-muted/50 p-4 dark:bg-muted/30">
-            <div className="flex flex-wrap justify-between gap-4 items-end">
-              <div>
-                <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground mb-1">
-                  Predicted price
-                </p>
-                <p className="text-xl font-bold tabular-nums text-foreground">
-                  {formatPrice(priceForecasts.latest.price)}
-                </p>
-              </div>
-              <div className="text-right min-w-[7rem]">
-                <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground mb-1">
-                  Confidence
-                </p>
-                <p
-                  className={`text-xl font-bold tabular-nums ${getConfidenceClass(priceForecasts.latest.confidence)}`}
-                >
-                  {formatConfidencePct(priceForecasts.latest.confidence)}%
-                </p>
-              </div>
-            </div>
-            <Progress
-              className="mt-3 [&_.ant-progress-bg]:!h-1.5"
-              percent={Math.min(100, Math.max(0, Number(priceForecasts.latest.confidence) || 0))}
-              strokeColor={getConfidenceBarColor(priceForecasts.latest.confidence)}
-              railColor="var(--border)"
-              size="small"
-              showInfo={false}
-            />
-            <p className="text-xs text-muted-foreground mt-3 leading-relaxed">
-              <span className="text-foreground/80">Model:</span>{" "}
-              {priceForecasts.latest.modelVersion}
-              <span className="mx-1.5 text-border">·</span>
-              <span className="text-foreground/80">ETL updated:</span>{" "}
-              {dayjs(priceForecasts.latest.date).format("DD/MM/YYYY")}
-            </p>
-          </div>
-        </div>
-      )}
 
       {/* Feature Analysis Section */}
       {featureAnalysis && featureAnalysis.featuresUsed?.length > 0 && (
