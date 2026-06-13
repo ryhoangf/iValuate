@@ -1,6 +1,6 @@
 "use client"
 
-import { Alert, Empty, Switch, Tooltip, Typography } from "antd"
+import { Alert, Empty, Switch, Tooltip } from "antd"
 import {
   ArrowDownOutlined,
   CheckCircleOutlined,
@@ -9,8 +9,6 @@ import {
 } from "@ant-design/icons"
 import { useCurrency } from "@/context/CurrencyContext"
 import { formatStorageLabel, formatRamLabel } from "@/lib/formatSpecs"
-
-const { Text } = Typography
 
 function formatSummaryLine(summary) {
   if (!summary) return null
@@ -182,10 +180,6 @@ export default function FeatureCounterfactualPanel({
   const maxDeficit    = Math.max(...impacts.map((row) => Number(row.deficit_vnd ?? 0)), 0)
   const topLoss       = visibleImpacts.find((row) => Number(row.deficit_vnd ?? 0) > 0)
   const summaryLine   = formatSummaryLine(report.input_summary || report.request_summary)
-
-  // Total drag across all visible impacts
-  const totalDrag = visibleImpacts.reduce((sum, r) => sum + Number(r.deficit_vnd ?? 0), 0)
-
   return (
     <div className="space-y-2">
       {/* compact summary bar */}
@@ -198,17 +192,6 @@ export default function FeatureCounterfactualPanel({
               {formatVnd(report.baseline_prediction_vnd)}
             </span>
           </div>
-
-          {/* total drag pill — only if there is any drag */}
-          {totalDrag > 0 && (
-            <>
-              <span className="text-muted-foreground/40">·</span>
-              <span className="inline-flex items-center gap-1 rounded-full bg-red-50 px-2 py-0.5 text-xs font-bold text-red-600 dark:bg-red-950/40 dark:text-red-400">
-                <ArrowDownOutlined className="text-[10px]" />
-                {formatVnd(totalDrag)} total drag
-              </span>
-            </>
-          )}
 
           {summaryLine ? (
             <span className="hidden text-xs text-muted-foreground sm:inline">· {summaryLine}</span>
