@@ -406,7 +406,7 @@ export default function PriceForecast30dPanel({
         <span>X-axis: calendar span (last 14 days + 30-day forecast).</span>
         <span className="inline-flex items-center gap-1">
           <RobotOutlined className="text-purple-500" />
-          {forecast.modelVersion ? `Model: ${forecast.modelVersion}` : "ML + history trend"}
+          {forecast.modelVersion ? `Model: ${forecast.modelVersion}` : "Historical price estimate"}
         </span>
         {forecast.asOfDate && (
           <span>Updated: {dayjs(forecast.asOfDate).format("DD/MM/YYYY")}</span>
@@ -418,6 +418,8 @@ export default function PriceForecast30dPanel({
               ? "history + ML"
               : forecast.method === "history_trend"
                 ? "history trend"
+                : forecast.method === "rolling_median"
+                  ? "7-day rolling median"
                 : "ML model"}
           </span>
         )}
