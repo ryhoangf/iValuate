@@ -21,7 +21,7 @@ router.get(
     '/depreciation-curve',
     requireAuth,
     requirePremium,
-    cacheResponse(21600, 'depreciation-curve-v2'),
+    cacheResponse(21600, 'depreciation-curve-v3'),
     productController.getDepreciationCurve
 );
 router.post('/counterfactual-impact', requireAuth, requirePremium, productController.postCounterfactualImpact);

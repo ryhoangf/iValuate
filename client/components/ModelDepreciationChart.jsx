@@ -88,6 +88,18 @@ export default function ModelDepreciationChart({ curve, loading, error }) {
                 Curve method: <strong>{curve.curve_method}</strong>
               </p>
             )}
+            {curve.depreciation_diagnostics?.annual_depreciation_pct != null && (
+              <p>
+                Learned annual depreciation:{" "}
+                <strong>
+                  {Number(
+                    curve.depreciation_diagnostics.annual_depreciation_pct
+                  ).toFixed(1)}
+                  %
+                </strong>
+                {" "}(data-derived, not a fixed rule)
+              </p>
+            )}
             {curve.query && (
               <p>
                 Baseline: {curve.query.model_line} · {curve.query.storage}GB · RAM{" "}
