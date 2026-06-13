@@ -67,6 +67,8 @@ jobs:
           ssh root@"${VPS_A_HOST}" "mkdir -p /root/ivaluate-k8s"
           scp deploy/k8s/* root@"${VPS_A_HOST}":/root/ivaluate-k8s/
           ssh root@"${VPS_A_HOST}" "
+            ML_IMAGE=\$(kubectl -n ivaluate get deployment ivaluate-ml \
+              -o jsonpath='{.spec.template.spec.containers[0].image}' 2>/dev/null || true) &&
             kubectl -n ivaluate create secret docker-registry ghcr-pull \
               --docker-server=ghcr.io \
               --docker-username='${{ github.repository_owner }}' \
@@ -77,6 +79,9 @@ jobs:
             kubectl apply -k /root/ivaluate-k8s &&
             kubectl -n ivaluate set image deployment/ivaluate-web web=${IMAGE_PREFIX}-web:${GITHUB_SHA} &&
             kubectl -n ivaluate set image deployment/ivaluate-api api=${IMAGE_PREFIX}-api:${GITHUB_SHA} &&
+            if [ -n \"\$ML_IMAGE\" ]; then
+              kubectl -n ivaluate set image deployment/ivaluate-ml ml=\"\$ML_IMAGE\";
+            fi &&
             kubectl -n ivaluate rollout status deployment/ivaluate-web --timeout=180s &&
             kubectl -n ivaluate rollout status deployment/ivaluate-api --timeout=180s
           "
