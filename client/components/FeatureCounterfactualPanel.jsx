@@ -78,6 +78,8 @@ function ImpactInsight({ row, maxDeficit, formatVnd }) {
   const deficit = Number(row.deficit_vnd ?? 0)
   const delta   = Number(row.delta_vnd   ?? 0)
   const sev     = severity(deficit, maxDeficit)
+  const support = row.evidence_support
+  const interval = row.interval_vnd
 
   const priceLabel =
     deficit > 0 ? `-${formatVnd(deficit)}`
@@ -113,7 +115,22 @@ function ImpactInsight({ row, maxDeficit, formatVnd }) {
             {sev.label}
           </span>
           {compareChip}
+          {support && support !== "model_only" ? (
+            <span className="text-[10px] text-muted-foreground">
+              {row.matched_groups} matched model groups
+              {support === "uncertain" ? " · mixed evidence" : ""}
+            </span>
+          ) : null}
         </div>
+        {interval?.lower != null && interval?.upper != null ? (
+          <p className="text-[11px] text-muted-foreground">
+            Evidence range: {formatVnd(interval.lower)} to {formatVnd(interval.upper)}
+          </p>
+        ) : support === "model_only" ? (
+          <p className="text-[11px] text-amber-600 dark:text-amber-400">
+            Limited matched-market evidence; model-only estimate
+          </p>
+        ) : null}
       </div>
 
       {/* right: price delta + tip */}
