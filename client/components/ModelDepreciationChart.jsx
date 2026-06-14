@@ -6,6 +6,7 @@ import { useCurrency } from "@/context/CurrencyContext";
 import {
   LineChart,
   Line,
+  Area,
   XAxis,
   YAxis,
   CartesianGrid,
@@ -52,6 +53,10 @@ export default function ModelDepreciationChart({ curve, loading, error }) {
   const chartData = curve.ages_years.map((age, i) => ({
     ageYears: age,
     priceVnd: curve.prices_vnd[i],
+    priceRange:
+      curve.lower_prices_vnd?.[i] != null && curve.upper_prices_vnd?.[i] != null
+        ? [curve.lower_prices_vnd[i], curve.upper_prices_vnd[i]]
+        : null,
   }));
 
   const formatPrice = (v) => formatFromVnd(v);
@@ -140,6 +145,15 @@ export default function ModelDepreciationChart({ curve, loading, error }) {
               labelFormatter={(label) => `Age: ${label} years`}
             />
             <Legend wrapperStyle={{ paddingTop: 16 }} iconSize={10} />
+            <Area
+              type="monotone"
+              dataKey="priceRange"
+              name="P10-P90 model range"
+              stroke="none"
+              fill="#93c5fd"
+              fillOpacity={0.25}
+              connectNulls
+            />
             <Line
               type="monotone"
               dataKey="priceVnd"
