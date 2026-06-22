@@ -251,7 +251,7 @@ function ProfileSettings({ profile, setProfile, watches, wLoading, wDrawerOpen, 
         <div
           className={
             tier === "premium"
-              ? "rounded-2xl bg-gradient-to-b from-amber-50 via-white to-white px-5 py-8 sm:px-8 sm:py-10 shadow-sm ring-1 ring-amber-200/70 dark:from-amber-950/30 dark:ring-amber-900/40"
+              ? "rounded-2xl bg-gradient-to-b from-amber-50 via-card to-card px-5 py-8 sm:px-8 sm:py-10 shadow-sm ring-1 ring-amber-200/70 dark:from-amber-950/30 dark:via-card dark:to-card dark:ring-amber-900/40"
               : "rounded-2xl bg-card px-5 py-8 sm:px-8 sm:py-10 shadow-sm ring-1 ring-border"
           }
         >
@@ -355,7 +355,7 @@ function ProfileSettings({ profile, setProfile, watches, wLoading, wDrawerOpen, 
   ]
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-background text-foreground">
       <Navbar />
 
       <div className="container mx-auto max-w-6xl px-4 py-8">
@@ -373,7 +373,7 @@ function ProfileSettings({ profile, setProfile, watches, wLoading, wDrawerOpen, 
           Account profile
         </Title>
 
-        <div className="mt-6 rounded-xl bg-card p-2 sm:p-4 border border-border">
+        <div className="mt-6 rounded-xl border border-border bg-card p-2 text-card-foreground sm:p-4">
           <Tabs
             tabPlacement="left"
             size="large"
@@ -435,7 +435,7 @@ function ProfileContent() {
 
   if (!ready || !profile) {
     return (
-      <div className="min-h-screen bg-gray-50">
+      <div className="min-h-screen bg-background text-foreground">
         <Navbar />
         <div className="container mx-auto max-w-3xl px-4 py-12 text-center text-muted-foreground">
           Loading profile…
