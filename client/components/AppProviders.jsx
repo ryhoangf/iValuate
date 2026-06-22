@@ -50,7 +50,7 @@ export default function AppProviders({ children }) {
 
   return (
     <QueryClientProvider client={queryClient}>
-      <ThemeProvider attribute="class" defaultTheme="dark" enableSystem disableTransitionOnChange>
+      <ThemeProvider attribute="class" defaultTheme="light" enableSystem disableTransitionOnChange>
         <CurrencyProvider>
           <AntdAppShell>{children}</AntdAppShell>
         </CurrencyProvider>
